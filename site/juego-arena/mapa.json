@@ -1,0 +1,3455 @@
+{
+  "version": 1,
+  "versionMapa": "0.0.1",
+  "nombre": "JAC Arena Pro",
+  "terrenoBase": "mixto",
+  "calzadaAuto": false,
+  "alumbrado": false,
+  "terrenos": [
+    {
+      "id": "g1",
+      "nombre": "Terreno 1",
+      "textura": "cesped",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          24.67,
+          295.65
+        ],
+        [
+          46.15,
+          310.08
+        ],
+        [
+          20.31,
+          316.46
+        ]
+      ]
+    },
+    {
+      "id": "g2",
+      "nombre": "Terreno 2",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          11.5,
+          228.16
+        ],
+        [
+          126.17,
+          227.45
+        ],
+        [
+          126.18,
+          225.73
+        ],
+        [
+          56.76,
+          219.46
+        ],
+        [
+          43.48,
+          197.98
+        ],
+        [
+          17.33,
+          194.73
+        ],
+        [
+          13.75,
+          214.37
+        ]
+      ]
+    },
+    {
+      "id": "g4",
+      "nombre": "Terreno 4",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          62.71,
+          68.23
+        ],
+        [
+          71.71,
+          69.72
+        ],
+        [
+          65.56,
+          104.71
+        ],
+        [
+          56.91,
+          106.36
+        ]
+      ]
+    },
+    {
+      "id": "g5",
+      "nombre": "Terreno 4",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          -10.41,
+          222.59
+        ],
+        [
+          9.24,
+          218.28
+        ],
+        [
+          16.58,
+          200.76
+        ],
+        [
+          13.38,
+          223.24
+        ]
+      ],
+      "radios": [
+        0,
+        60,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "g6",
+      "nombre": "Terreno 5",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          80.76,
+          -211.27
+        ],
+        [
+          85.59,
+          -216.68
+        ],
+        [
+          84.4,
+          -208.05
+        ]
+      ]
+    },
+    {
+      "id": "g7",
+      "nombre": "Terreno 6",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          -7.05,
+          -177.1
+        ],
+        [
+          -14.38,
+          -176.12
+        ],
+        [
+          -22.99,
+          -174.92
+        ],
+        [
+          -6.59,
+          -172.12
+        ]
+      ]
+    },
+    {
+      "id": "g8",
+      "nombre": "Terreno 7",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          108.2,
+          -205.28
+        ],
+        [
+          112.95,
+          -206.77
+        ],
+        [
+          110.05,
+          -217.81
+        ]
+      ]
+    },
+    {
+      "id": "g9",
+      "nombre": "Terreno 8",
+      "textura": "asfalto",
+      "escala": 1,
+      "suavizar": false,
+      "puntos": [
+        [
+          175.68,
+          -148.23
+        ],
+        [
+          190.9,
+          -140.68
+        ],
+        [
+          173.74,
+          -143.13
+        ]
+      ]
+    }
+  ],
+  "edificios": [
+    {
+      "id": "e1",
+      "nombre": "Edificio Comercial JAC (v3, texturizado)",
+      "modelo": "edificio-comercial-v3",
+      "rumbo": 278.9,
+      "escala": 1.14,
+      "y": 0,
+      "x": 109.89,
+      "z": 141.46
+    },
+    {
+      "id": "e2",
+      "nombre": "Burger Crown",
+      "modelo": "burger-crown",
+      "rumbo": 100.7,
+      "escala": 1.68,
+      "y": 0,
+      "x": 17.16,
+      "z": -63.86
+    },
+    {
+      "id": "e3",
+      "nombre": "Torre Milenium",
+      "modelo": "torre-milenium",
+      "rumbo": 99.2,
+      "escala": 1,
+      "y": 1.5,
+      "x": -28.81,
+      "z": 174.49
+    },
+    {
+      "id": "e4",
+      "nombre": "Café Amanecer (autoservicio)",
+      "modelo": "cafe-amanecer",
+      "rumbo": 10.4,
+      "escala": 1.12,
+      "y": 0.6,
+      "x": -11.71,
+      "z": -67.23
+    },
+    {
+      "id": "e5",
+      "nombre": "Galería Comercial 03",
+      "modelo": "galeria-comercial-03",
+      "rumbo": 8,
+      "escala": 1,
+      "y": 0.8,
+      "x": 169.82,
+      "z": -42.68,
+      "modulos": 6
+    },
+    {
+      "id": "e6",
+      "nombre": "Galería Comercial 03 (copia)",
+      "modelo": "galeria-comercial-03",
+      "rumbo": 279.5,
+      "escala": 1,
+      "y": 0.6,
+      "x": 91.95,
+      "z": -0.52,
+      "modulos": 4
+    },
+    {
+      "id": "e7",
+      "nombre": "Cobertizo con cerca",
+      "modelo": "cobertizo-cerca",
+      "rumbo": 99.4,
+      "escala": 1,
+      "y": 0.8,
+      "x": 81.94,
+      "z": -2.11,
+      "ancho": 86
+    },
+    {
+      "id": "e8",
+      "nombre": "Cobertizo con cerca (copia)",
+      "modelo": "cobertizo-cerca",
+      "rumbo": 187.8,
+      "escala": 1,
+      "y": 0.8,
+      "x": 171.3,
+      "z": -52.35,
+      "ancho": 129
+    },
+    {
+      "id": "e10",
+      "nombre": "Semáforo de pórtico en Y (copia)",
+      "modelo": "semaforo-gantry",
+      "rumbo": 97.5,
+      "escala": 2.07,
+      "y": 0,
+      "x": 91.63,
+      "z": -103.17
+    },
+    {
+      "id": "e11",
+      "nombre": "Semáforo de pórtico en Y (copia) (copia)",
+      "modelo": "semaforo-gantry",
+      "rumbo": 278.8,
+      "escala": 2.07,
+      "y": 0,
+      "x": 74.53,
+      "z": -160.02
+    },
+    {
+      "id": "e12",
+      "nombre": "Edificio institucional",
+      "modelo": "edificio-institucional",
+      "rumbo": 99.1,
+      "escala": 1.16,
+      "y": 0.3,
+      "x": 11.97,
+      "z": 34.52
+    },
+    {
+      "id": "e13",
+      "nombre": "Pared de zinc (tramo de 4,87 m)",
+      "modelo": "pared-zinc-tramo",
+      "rumbo": 9.7,
+      "escala": 1,
+      "y": 0,
+      "x": -9.14,
+      "z": 75.78,
+      "modulos": 17
+    },
+    {
+      "id": "e14",
+      "nombre": "Pared de zinc (tramo de 4,87 m)",
+      "modelo": "pared-zinc-tramo",
+      "rumbo": 98.9,
+      "escala": 1,
+      "y": 0,
+      "x": 28.11,
+      "z": 104.57,
+      "modulos": 9
+    },
+    {
+      "id": "e15",
+      "nombre": "Pared de zinc (corto de 2,4 m)",
+      "modelo": "pared-zinc-corto",
+      "rumbo": 98.2,
+      "escala": 1,
+      "y": 0,
+      "x": 24.68,
+      "z": 126.57
+    },
+    {
+      "id": "e16",
+      "nombre": "Pared de zinc (tramo de 4,87 m) (copia)",
+      "modelo": "pared-zinc-tramo",
+      "rumbo": 189.2,
+      "escala": 1,
+      "y": 0,
+      "x": -16.59,
+      "z": 121.23,
+      "modulos": 17
+    },
+    {
+      "id": "e17",
+      "nombre": "Pared de zinc (tramo de 4,87 m) (copia)",
+      "modelo": "pared-zinc-tramo",
+      "rumbo": 101.4,
+      "escala": 1,
+      "y": 0,
+      "x": -54.2,
+      "z": 90.49,
+      "modulos": 9
+    },
+    {
+      "id": "e18",
+      "nombre": "Pared de zinc (corto de 2,4 m) (copia)",
+      "modelo": "pared-zinc-corto",
+      "rumbo": 248.1,
+      "escala": 1,
+      "y": 0,
+      "x": -58.13,
+      "z": 113.16
+    }
+  ],
+  "macetas": [
+    {
+      "id": "m8",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 9.6,
+      "largo": 15.97,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "areca",
+      "plantaAlto": 1.8,
+      "x": 60.98,
+      "z": 117.15
+    },
+    {
+      "id": "m9",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 9.6,
+      "largo": 15.97,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "areca",
+      "plantaAlto": 1.8,
+      "x": 57.37,
+      "z": 138.19
+    },
+    {
+      "id": "m10",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 9.6,
+      "largo": 15.97,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "areca",
+      "plantaAlto": 1.8,
+      "x": 53.89,
+      "z": 158.71
+    },
+    {
+      "id": "m11",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 9.6,
+      "largo": 15.97,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "areca",
+      "plantaAlto": 1.8,
+      "x": 49.8,
+      "z": 182.2
+    },
+    {
+      "id": "m12",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 8.2,
+      "largo": 25.02,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "ninguna",
+      "plantaAlto": 1.8,
+      "x": 17.99,
+      "z": 158.62
+    },
+    {
+      "id": "m13",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 8.2,
+      "largo": 25.02,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "ninguna",
+      "plantaAlto": 1.8,
+      "x": 12.37,
+      "z": 194.49
+    },
+    {
+      "id": "m14",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 91.6,
+      "largo": 11.8,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "ninguna",
+      "plantaAlto": 1.8,
+      "x": -6.09,
+      "z": 217.12
+    },
+    {
+      "id": "m15",
+      "nombre": "Maceta 3 (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia) (copia)",
+      "rumbo": 97.1,
+      "largo": 37.4,
+      "ancho": 1.85,
+      "alto": 2,
+      "planta": "ninguna",
+      "plantaAlto": 1.8,
+      "x": -55.84,
+      "z": 212.27
+    }
+  ],
+  "cercas": [
+    {
+      "id": "z1",
+      "nombre": "Cerca 1",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          61.42,
+          -104.6
+        ],
+        [
+          -18.52,
+          -117.81
+        ]
+      ]
+    },
+    {
+      "id": "z2",
+      "nombre": "Cerca 2",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          61.42,
+          -104.6
+        ],
+        [
+          46.81,
+          -17.8
+        ]
+      ]
+    },
+    {
+      "id": "z3",
+      "nombre": "Cerca 2 (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          92.89,
+          -100.8
+        ],
+        [
+          91.33,
+          -91.56
+        ]
+      ],
+      "color": "#f2f2f2"
+    },
+    {
+      "id": "z4",
+      "nombre": "Cerca 2 (copia) (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          92.89,
+          -100.8
+        ],
+        [
+          289.29,
+          -72.73
+        ]
+      ],
+      "color": "#f2f2f2"
+    },
+    {
+      "id": "z5",
+      "nombre": "Cerca 2 (copia) (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          90.11,
+          -84.33
+        ],
+        [
+          88.55,
+          -75.09
+        ]
+      ],
+      "color": "#f2f2f2"
+    },
+    {
+      "id": "z6",
+      "nombre": "Cerca 2 (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          44.77,
+          -3.45
+        ],
+        [
+          41.99,
+          13.15
+        ]
+      ]
+    },
+    {
+      "id": "z7",
+      "nombre": "Cerca 2 (copia) (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          41.99,
+          13.18
+        ],
+        [
+          38,
+          38.31
+        ]
+      ],
+      "color": "#8a8f94"
+    },
+    {
+      "id": "z8",
+      "nombre": "Cerca 2 (copia) (copia) (copia)",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          37.18,
+          43.5
+        ],
+        [
+          34.18,
+          63.19
+        ]
+      ],
+      "color": "#8a8f94"
+    },
+    {
+      "id": "z9",
+      "nombre": "Cerca 9",
+      "alto": 1,
+      "modulo": 2.5,
+      "suavizar": false,
+      "puntos": [
+        [
+          34.16,
+          63.17
+        ],
+        [
+          -12.44,
+          55.25
+        ]
+      ],
+      "color": "#8a8f94"
+    }
+  ],
+  "estacionamientos": [
+    {
+      "id": "p1",
+      "nombre": "Estacionamiento 1",
+      "rumbo": 99,
+      "ancho": 8,
+      "alto": 28.82,
+      "paso": 5,
+      "grosor": 0.09,
+      "color": "amarillo",
+      "x": 64.49,
+      "z": 89.18,
+      "inclinacion": -24
+    },
+    {
+      "id": "p2",
+      "nombre": "Estacionamiento 2",
+      "rumbo": 99.1,
+      "ancho": 5.83,
+      "alto": 79.87,
+      "paso": 4.4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": 50.59,
+      "z": -57.03,
+      "inclinacion": -20
+    },
+    {
+      "id": "p3",
+      "nombre": "Estacionamiento 2 (copia)",
+      "rumbo": 8.1,
+      "ancho": 5.83,
+      "alto": 68.37,
+      "paso": 4.4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": 18.96,
+      "z": -108.62,
+      "inclinacion": -20
+    },
+    {
+      "id": "p4",
+      "nombre": "Estacionamiento 2 (copia) (copia)",
+      "rumbo": 100.1,
+      "ancho": 5.83,
+      "alto": 27.62,
+      "paso": 4.4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": 31.66,
+      "z": -58.8,
+      "inclinacion": 20
+    },
+    {
+      "id": "p5",
+      "nombre": "Estacionamiento 2 (copia) (copia) (copia)",
+      "rumbo": 11.2,
+      "ancho": 5.83,
+      "alto": 18.84,
+      "paso": 4.4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": 21.04,
+      "z": -81.43,
+      "inclinacion": 20
+    },
+    {
+      "id": "p6",
+      "nombre": "Estacionamiento 6",
+      "rumbo": 8,
+      "ancho": 8.26,
+      "alto": 177.8,
+      "paso": 5,
+      "grosor": 0.13,
+      "color": "blanco",
+      "x": 188.68,
+      "z": -82.2,
+      "inclinacion": -30
+    },
+    {
+      "id": "p7",
+      "nombre": "Estacionamiento 6 (copia)",
+      "rumbo": 8,
+      "ancho": 8.26,
+      "alto": 153.6,
+      "paso": 5,
+      "grosor": 0.13,
+      "color": "blanco",
+      "x": 165.2,
+      "z": -62.33,
+      "inclinacion": 30
+    },
+    {
+      "id": "p8",
+      "nombre": "Estacionamiento 2 (copia) (copia)",
+      "rumbo": 99.5,
+      "ancho": 5.83,
+      "alto": 79.73,
+      "paso": 4.4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": -49.08,
+      "z": -68.77,
+      "inclinacion": -20
+    },
+    {
+      "id": "p9",
+      "nombre": "Estacionamiento 9",
+      "rumbo": 99,
+      "ancho": 5.45,
+      "alto": 91.66,
+      "paso": 4,
+      "grosor": 0.12,
+      "color": "amarillo",
+      "x": 72.42,
+      "z": -7.08,
+      "inclinacion": -30
+    }
+  ],
+  "rampas": [
+    {
+      "id": "q1",
+      "nombre": "Rampa 1",
+      "rumbo": 279.4,
+      "ancho": 11.19,
+      "largo": 5,
+      "x": 49.28,
+      "z": -8.63
+    },
+    {
+      "id": "q2",
+      "nombre": "Rampa 2",
+      "rumbo": 189.4,
+      "ancho": 15.64,
+      "largo": 5,
+      "x": -25.82,
+      "z": -123.22
+    }
+  ],
+  "flechas": [
+    {
+      "id": "f1",
+      "nombre": "Flecha 1",
+      "rumbo": 11,
+      "tipo": "recta",
+      "largo": 4,
+      "cantidad": 3,
+      "paso": 15,
+      "color": "blanco",
+      "x": 38.84,
+      "z": -45.38,
+      "grosor": 1
+    },
+    {
+      "id": "f2",
+      "nombre": "Flecha 1 (copia)",
+      "rumbo": 279.1,
+      "tipo": "recta",
+      "largo": 4,
+      "cantidad": 3,
+      "paso": 15,
+      "color": "blanco",
+      "x": 21.06,
+      "z": -94.94,
+      "grosor": 1
+    },
+    {
+      "id": "f3",
+      "nombre": "Flecha 3",
+      "rumbo": 99.3,
+      "tipo": "recta-der",
+      "largo": 4,
+      "cantidad": 1,
+      "paso": 15,
+      "color": "blanco",
+      "x": 58.7,
+      "z": -113.95,
+      "grosor": 0.57
+    },
+    {
+      "id": "f4",
+      "nombre": "Flecha 1 (copia)",
+      "rumbo": 100.4,
+      "tipo": "recta",
+      "largo": 4,
+      "cantidad": 5,
+      "paso": 15,
+      "color": "blanco",
+      "x": -6.44,
+      "z": -15.56,
+      "grosor": 1
+    },
+    {
+      "id": "f5",
+      "nombre": "Flecha 1 (copia) (copia)",
+      "rumbo": 280.9,
+      "tipo": "recta",
+      "largo": 4,
+      "cantidad": 5,
+      "paso": 15,
+      "color": "blanco",
+      "x": -1.59,
+      "z": -23.36,
+      "grosor": 1
+    },
+    {
+      "id": "f6",
+      "nombre": "Flecha 1 (copia) (copia)",
+      "rumbo": 190.7,
+      "tipo": "recta",
+      "largo": 4,
+      "cantidad": 5,
+      "paso": 15,
+      "color": "blanco",
+      "x": -39.12,
+      "z": -75.39,
+      "grosor": 1
+    },
+    {
+      "id": "f8",
+      "nombre": "Flecha 1 (copia) (copia) (copia) (copia)",
+      "rumbo": 277.8,
+      "tipo": "recta",
+      "largo": 3.5,
+      "cantidad": 10,
+      "paso": 15,
+      "color": "blanco",
+      "x": 171.65,
+      "z": -73.16,
+      "grosor": 1
+    },
+    {
+      "id": "f9",
+      "nombre": "Flecha 9",
+      "rumbo": 99.3,
+      "tipo": "izquierda",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 61.8,
+      "z": -132.41,
+      "grosor": 1
+    },
+    {
+      "id": "f10",
+      "nombre": "Flecha 10",
+      "rumbo": 99.3,
+      "tipo": "recta",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 58.7,
+      "z": -119.83,
+      "grosor": 1
+    },
+    {
+      "id": "f11",
+      "nombre": "Flecha 10 (copia)",
+      "rumbo": 99.3,
+      "tipo": "recta",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 60.15,
+      "z": -126.09,
+      "grosor": 1
+    },
+    {
+      "id": "f12",
+      "nombre": "Flecha 12",
+      "rumbo": 279.9,
+      "tipo": "recta-der",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 108.54,
+      "z": -149.55,
+      "grosor": 0.52
+    },
+    {
+      "id": "f13",
+      "nombre": "Flecha 13",
+      "rumbo": 280.2,
+      "tipo": "recta",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 106.27,
+      "z": -133.53,
+      "grosor": 1
+    },
+    {
+      "id": "f14",
+      "nombre": "Flecha 13 (copia)",
+      "rumbo": 280.2,
+      "tipo": "recta",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 107.73,
+      "z": -142.9,
+      "grosor": 1
+    },
+    {
+      "id": "f15",
+      "nombre": "Flecha 13 (copia)",
+      "rumbo": 280.2,
+      "tipo": "izquierda",
+      "largo": 4.5,
+      "cantidad": 1,
+      "paso": 20,
+      "color": "blanco",
+      "x": 104.05,
+      "z": -126.21,
+      "grosor": 1
+    }
+  ],
+  "escaleras": [],
+  "cruces": [
+    {
+      "id": "p14",
+      "nombre": "Cruce 1",
+      "rumbo": 190.3,
+      "tipo": "cebra",
+      "largo": 49.03,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 68.44,
+      "z": -133.65
+    },
+    {
+      "id": "p15",
+      "nombre": "Cruce 1 (copia)",
+      "rumbo": 189.3,
+      "tipo": "cebra",
+      "largo": 50.1,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 97.54,
+      "z": -129.55
+    },
+    {
+      "id": "p16",
+      "nombre": "Cruce 1 (copia) (copia)",
+      "rumbo": 279,
+      "tipo": "cebra",
+      "largo": 24.12,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 77.69,
+      "z": -104.24
+    },
+    {
+      "id": "p11",
+      "nombre": "Cruce 1 (copia) (copia) (copia)",
+      "rumbo": 279,
+      "tipo": "cebra",
+      "largo": 23.47,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 89.35,
+      "z": -159.55
+    },
+    {
+      "id": "p12",
+      "nombre": "Cruce 1 (copia) (copia) (copia)",
+      "rumbo": 279,
+      "tipo": "cebra",
+      "largo": 24.12,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 30.03,
+      "z": 198.44
+    },
+    {
+      "id": "p13",
+      "nombre": "Cruce 1 (copia) (copia) (copia) (copia)",
+      "rumbo": 9.3,
+      "tipo": "cebra",
+      "largo": 11.48,
+      "ancho": 3.17,
+      "paso": 1,
+      "barra": 0.5,
+      "color": "blanco",
+      "x": 34.83,
+      "z": 73.99
+    }
+  ],
+  "semaforos": [
+    {
+      "id": "sg1",
+      "nombre": "Cruce 1",
+      "miembros": [
+        "e10",
+        "e11"
+      ],
+      "verde": 9,
+      "ambar": 2,
+      "despeje": 1
+    }
+  ],
+  "calles": [
+    {
+      "id": "c1",
+      "nombre": "Calle Norte",
+      "puntos": [
+        [
+          -380.82,
+          -191.41
+        ],
+        [
+          87.24,
+          -114.91
+        ],
+        [
+          475.25,
+          -58.49
+        ]
+      ],
+      "ancho": 20,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 3,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c3",
+      "nombre": "Calle Sur",
+      "puntos": [
+        [
+          486.71,
+          187.92
+        ],
+        [
+          311.21,
+          209.52
+        ],
+        [
+          131.21,
+          232.92
+        ],
+        [
+          -27.63,
+          228.26
+        ],
+        [
+          -195.63,
+          207.48
+        ],
+        [
+          -336.65,
+          193.62
+        ],
+        [
+          -417.79,
+          178.02
+        ]
+      ],
+      "ancho": 13,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c4",
+      "nombre": "Calle Oeste",
+      "puntos": [
+        [
+          -459,
+          258.3
+        ],
+        [
+          -414,
+          -4.5
+        ],
+        [
+          -369,
+          -306
+        ]
+      ],
+      "ancho": 13,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c6",
+      "nombre": "Calle Interior Oeste",
+      "puntos": [
+        [
+          -407.72,
+          -3.3
+        ],
+        [
+          -180,
+          36
+        ],
+        [
+          -57.85,
+          57.64
+        ],
+        [
+          37.1,
+          74.46
+        ]
+      ],
+      "ancho": 12,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c7",
+      "nombre": "Calle Interior Este",
+      "puntos": [
+        [
+          66.92,
+          45.08
+        ],
+        [
+          220.79,
+          67.28
+        ],
+        [
+          271.65,
+          74.66
+        ]
+      ],
+      "ancho": 11.5,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c8",
+      "nombre": "Av. 4 (calzada sur)",
+      "puntos": [
+        [
+          -763.2,
+          -373.98
+        ],
+        [
+          -368.44,
+          -309.45
+        ]
+      ],
+      "ancho": 20,
+      "jugable": false,
+      "marca": "ninguna",
+      "carriles": 3,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c10",
+      "nombre": "Av. 4 (calzada norte)",
+      "puntos": [
+        [
+          -780.89,
+          -289.62
+        ],
+        [
+          -387.81,
+          -224.77
+        ],
+        [
+          59.81,
+          -150.51
+        ],
+        [
+          173.39,
+          -132.59
+        ],
+        [
+          474.75,
+          -89.32
+        ]
+      ],
+      "ancho": 21,
+      "jugable": false,
+      "marca": "ninguna",
+      "carriles": 3,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "naranja",
+      "suavizar": false
+    },
+    {
+      "id": "c12",
+      "nombre": "Calle Central (norte)",
+      "puntos": [
+        [
+          88.83,
+          -156.34
+        ],
+        [
+          106.83,
+          -278.34
+        ],
+        [
+          119.83,
+          -396.34
+        ]
+      ],
+      "ancho": 24,
+      "jugable": false,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0.5,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "gris",
+      "suavizar": false
+    },
+    {
+      "id": "c17",
+      "nombre": "Av. 4",
+      "puntos": [
+        [
+          -783.39,
+          -273.38
+        ],
+        [
+          -388.63,
+          -208.85
+        ],
+        [
+          81.8,
+          -130.97
+        ],
+        [
+          135.53,
+          -122.61
+        ],
+        [
+          230.81,
+          -108.09
+        ],
+        [
+          340.77,
+          -92.32
+        ],
+        [
+          458.87,
+          -75.23
+        ],
+        [
+          472.71,
+          -73.75
+        ]
+      ],
+      "ancho": 11,
+      "jugable": false,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": true,
+      "color": "naranja",
+      "suavizar": false,
+      "radios": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0
+      ]
+    },
+    {
+      "id": "c18",
+      "nombre": "Vía exterior oeste",
+      "puntos": [
+        [
+          -414,
+          -4.5
+        ],
+        [
+          -540,
+          -31.5
+        ],
+        [
+          -765,
+          -72
+        ]
+      ],
+      "ancho": 14,
+      "jugable": false,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "naranja",
+      "suavizar": false
+    },
+    {
+      "id": "c19",
+      "nombre": "Vía exterior suroeste",
+      "puntos": [
+        [
+          -459,
+          258.3
+        ],
+        [
+          -540,
+          243
+        ],
+        [
+          -765,
+          207
+        ]
+      ],
+      "ancho": 14,
+      "jugable": false,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "naranja",
+      "suavizar": false
+    },
+    {
+      "id": "c20",
+      "nombre": "Vía exterior sur",
+      "puntos": [
+        [
+          -459,
+          258.3
+        ],
+        [
+          -477,
+          378
+        ],
+        [
+          -504,
+          540
+        ]
+      ],
+      "ancho": 14,
+      "jugable": false,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "naranja",
+      "suavizar": false
+    },
+    {
+      "id": "c21",
+      "nombre": "Vía exterior sureste",
+      "puntos": [
+        [
+          445.5,
+          268.2
+        ],
+        [
+          477,
+          360
+        ],
+        [
+          504,
+          540
+        ]
+      ],
+      "ancho": 13,
+      "jugable": false,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "color": "naranja",
+      "suavizar": false
+    },
+    {
+      "id": "c22",
+      "nombre": "Calle 19",
+      "ancho": 25.5,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.22,
+      "extra": false,
+      "suavizar": true,
+      "puntos": [
+        [
+          78.04,
+          -106.88
+        ],
+        [
+          30.07,
+          197.35
+        ]
+      ]
+    },
+    {
+      "id": "c23",
+      "nombre": "Calle 16",
+      "ancho": 13,
+      "jugable": true,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.15,
+      "extra": false,
+      "suavizar": false,
+      "puntos": [
+        [
+          298.69,
+          -73.92
+        ],
+        [
+          258.84,
+          215.87
+        ]
+      ]
+    },
+    {
+      "id": "c24",
+      "nombre": "Calle 16",
+      "ancho": 25,
+      "jugable": true,
+      "marca": "discontinua",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.15,
+      "extra": false,
+      "suavizar": false,
+      "puntos": [
+        [
+          24.84,
+          229.8
+        ],
+        [
+          -6.41,
+          487.02
+        ]
+      ]
+    },
+    {
+      "id": "c25",
+      "nombre": "Calle 17",
+      "ancho": 5,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.15,
+      "extra": false,
+      "suavizar": false,
+      "puntos": [
+        [
+          82.71,
+          -209.73
+        ],
+        [
+          74.09,
+          -200.07
+        ],
+        [
+          55.65,
+          -184.47
+        ],
+        [
+          21.55,
+          -176.95
+        ],
+        [
+          -6.83,
+          -174.6
+        ]
+      ],
+      "radios": [
+        0,
+        60,
+        44,
+        60,
+        0
+      ]
+    },
+    {
+      "id": "c26",
+      "nombre": "Calle 18",
+      "ancho": 5,
+      "jugable": true,
+      "marca": "ninguna",
+      "carriles": 0,
+      "bordes": false,
+      "separador": 0,
+      "separadorAlto": 0.15,
+      "extra": false,
+      "suavizar": false,
+      "puntos": [
+        [
+          110.52,
+          -206.07
+        ],
+        [
+          114.69,
+          -190.71
+        ],
+        [
+          119.37,
+          -179.63
+        ],
+        [
+          126.46,
+          -169.91
+        ],
+        [
+          137.68,
+          -161.3
+        ],
+        [
+          154.31,
+          -153.77
+        ],
+        [
+          174.87,
+          -145.93
+        ]
+      ],
+      "radios": [
+        0,
+        60,
+        60,
+        60,
+        60,
+        60,
+        0
+      ]
+    }
+  ],
+  "separadores": [
+    {
+      "id": "s2",
+      "ancho": 0.5,
+      "alto": 0.4,
+      "puntos": [
+        [
+          10.24,
+          -148.64
+        ],
+        [
+          64.4,
+          -139.19
+        ]
+      ],
+      "suavizar": false
+    },
+    {
+      "id": "s3",
+      "ancho": 0.3,
+      "alto": 0.2,
+      "suavizar": false,
+      "puntos": [
+        [
+          472.25,
+          -68.03
+        ],
+        [
+          171.56,
+          -111.37
+        ],
+        [
+          178.48,
+          -113.96
+        ],
+        [
+          190.39,
+          -120.56
+        ],
+        [
+          473.17,
+          -79.21
+        ],
+        [
+          472.25,
+          -68.03
+        ]
+      ],
+      "bordeDe": "a5",
+      "radios": [
+        0,
+        0,
+        60,
+        60,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "s4",
+      "ancho": 0.3,
+      "alto": 0.2,
+      "suavizar": false,
+      "puntos": [
+        [
+          171.56,
+          -111.37
+        ],
+        [
+          101.97,
+          -122.25
+        ]
+      ]
+    },
+    {
+      "id": "s7",
+      "ancho": 0.3,
+      "alto": 0.6,
+      "suavizar": false,
+      "puntos": [
+        [
+          26.94,
+          -14.13
+        ],
+        [
+          -33.67,
+          -24.24
+        ]
+      ]
+    },
+    {
+      "id": "s8",
+      "ancho": 0.3,
+      "alto": 0.6,
+      "suavizar": false,
+      "puntos": [
+        [
+          -29.12,
+          -88.92
+        ],
+        [
+          -35.79,
+          -52.68
+        ]
+      ]
+    },
+    {
+      "id": "s9",
+      "ancho": 0.3,
+      "alto": 0.2,
+      "suavizar": false,
+      "puntos": [
+        [
+          76.05,
+          -100.4
+        ],
+        [
+          70.03,
+          -60.53
+        ],
+        [
+          70.35,
+          -58.33
+        ],
+        [
+          50.26,
+          69.46
+        ]
+      ],
+      "radios": [
+        0,
+        60,
+        60,
+        0
+      ]
+    },
+    {
+      "id": "s10",
+      "ancho": 0.3,
+      "alto": 0.2,
+      "suavizar": false,
+      "puntos": [
+        [
+          30.92,
+          196.65
+        ],
+        [
+          35.4,
+          169.12
+        ],
+        [
+          34.74,
+          166.77
+        ],
+        [
+          41.98,
+          120.88
+        ],
+        [
+          41.45,
+          117.95
+        ],
+        [
+          47.23,
+          82.92
+        ]
+      ],
+      "radios": [
+        0,
+        60,
+        60,
+        60,
+        60,
+        0
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "id": "a1",
+      "nombre": "Isla Av. 4 oeste",
+      "puntos": [
+        [
+          -774.89,
+          -276.62
+        ],
+        [
+          -759.89,
+          -274.17
+        ],
+        [
+          -744.89,
+          -271.72
+        ],
+        [
+          -729.89,
+          -269.26
+        ],
+        [
+          -714.89,
+          -266.81
+        ],
+        [
+          -699.89,
+          -264.36
+        ],
+        [
+          -684.89,
+          -261.91
+        ],
+        [
+          -669.89,
+          -259.46
+        ],
+        [
+          -654.89,
+          -257.01
+        ],
+        [
+          -639.89,
+          -254.55
+        ],
+        [
+          -624.89,
+          -252.1
+        ],
+        [
+          -609.89,
+          -249.65
+        ],
+        [
+          -594.89,
+          -247.2
+        ],
+        [
+          -579.89,
+          -244.75
+        ],
+        [
+          -564.89,
+          -242.29
+        ],
+        [
+          -549.89,
+          -239.84
+        ],
+        [
+          -534.89,
+          -237.39
+        ],
+        [
+          -519.89,
+          -234.94
+        ],
+        [
+          -504.89,
+          -232.49
+        ],
+        [
+          -489.89,
+          -230.03
+        ],
+        [
+          -474.89,
+          -227.58
+        ],
+        [
+          -459.89,
+          -225.13
+        ],
+        [
+          -444.89,
+          -222.68
+        ],
+        [
+          -429.89,
+          -220.23
+        ],
+        [
+          -414.89,
+          -217.77
+        ],
+        [
+          -399.89,
+          -215.32
+        ],
+        [
+          -384.89,
+          -212.87
+        ],
+        [
+          -369.89,
+          -210.42
+        ],
+        [
+          -354.89,
+          -207.97
+        ],
+        [
+          -339.89,
+          -205.51
+        ],
+        [
+          -324.89,
+          -203.06
+        ],
+        [
+          -309.89,
+          -200.61
+        ],
+        [
+          -294.89,
+          -198.16
+        ],
+        [
+          -279.89,
+          -195.71
+        ],
+        [
+          -264.89,
+          -193.26
+        ],
+        [
+          -249.89,
+          -190.8
+        ],
+        [
+          -234.89,
+          -188.35
+        ],
+        [
+          -219.89,
+          -185.9
+        ],
+        [
+          -204.89,
+          -183.45
+        ],
+        [
+          -189.89,
+          -181
+        ],
+        [
+          -174.89,
+          -178.54
+        ],
+        [
+          -159.89,
+          -176.09
+        ],
+        [
+          -144.89,
+          -173.64
+        ],
+        [
+          -129.89,
+          -171.19
+        ],
+        [
+          -114.89,
+          -168.74
+        ],
+        [
+          -99.89,
+          -166.28
+        ],
+        [
+          -84.89,
+          -163.83
+        ],
+        [
+          -69.89,
+          -161.38
+        ],
+        [
+          -54.89,
+          -158.93
+        ],
+        [
+          9.9,
+          -148.73
+        ],
+        [
+          -0.16,
+          -148.58
+        ],
+        [
+          -6.15,
+          -147.51
+        ],
+        [
+          -10,
+          -145.58
+        ],
+        [
+          -13.1,
+          -141.35
+        ],
+        [
+          -71.5,
+          -151.51
+        ],
+        [
+          -86.5,
+          -153.96
+        ],
+        [
+          -101.5,
+          -156.41
+        ],
+        [
+          -116.5,
+          -158.87
+        ],
+        [
+          -131.5,
+          -161.32
+        ],
+        [
+          -146.5,
+          -163.77
+        ],
+        [
+          -161.5,
+          -166.22
+        ],
+        [
+          -176.5,
+          -168.67
+        ],
+        [
+          -191.5,
+          -171.13
+        ],
+        [
+          -206.5,
+          -173.58
+        ],
+        [
+          -221.5,
+          -176.03
+        ],
+        [
+          -236.5,
+          -178.48
+        ],
+        [
+          -251.5,
+          -180.93
+        ],
+        [
+          -266.5,
+          -183.39
+        ],
+        [
+          -281.5,
+          -185.84
+        ],
+        [
+          -296.5,
+          -188.29
+        ],
+        [
+          -311.5,
+          -190.74
+        ],
+        [
+          -326.5,
+          -193.19
+        ],
+        [
+          -341.5,
+          -195.65
+        ],
+        [
+          -356.5,
+          -198.1
+        ],
+        [
+          -371.5,
+          -200.55
+        ],
+        [
+          -386.5,
+          -203
+        ],
+        [
+          -401.5,
+          -205.45
+        ],
+        [
+          -416.5,
+          -207.91
+        ],
+        [
+          -431.5,
+          -210.36
+        ],
+        [
+          -446.5,
+          -212.81
+        ],
+        [
+          -461.5,
+          -215.26
+        ],
+        [
+          -476.5,
+          -217.71
+        ],
+        [
+          -491.5,
+          -220.16
+        ],
+        [
+          -506.5,
+          -222.62
+        ],
+        [
+          -521.5,
+          -225.07
+        ],
+        [
+          -536.5,
+          -227.52
+        ],
+        [
+          -551.5,
+          -229.97
+        ],
+        [
+          -566.5,
+          -232.42
+        ],
+        [
+          -581.5,
+          -234.88
+        ],
+        [
+          -596.5,
+          -237.33
+        ],
+        [
+          -611.5,
+          -239.78
+        ],
+        [
+          -626.5,
+          -242.23
+        ],
+        [
+          -641.5,
+          -244.68
+        ],
+        [
+          -656.5,
+          -247.14
+        ],
+        [
+          -671.5,
+          -249.59
+        ],
+        [
+          -686.5,
+          -252.04
+        ],
+        [
+          -701.5,
+          -254.49
+        ],
+        [
+          -716.5,
+          -256.94
+        ],
+        [
+          -731.5,
+          -259.4
+        ],
+        [
+          -746.5,
+          -261.85
+        ],
+        [
+          -761.5,
+          -264.3
+        ],
+        [
+          -776.5,
+          -266.75
+        ]
+      ],
+      "alto": 0.4,
+      "superficie": "cesped",
+      "borde": true,
+      "arboles": 13,
+      "tipos": "mixto",
+      "suavizar": false,
+      "radios": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        60,
+        60,
+        60,
+        60,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "a5",
+      "nombre": "Área 4",
+      "alto": 0.2,
+      "superficie": "cesped",
+      "borde": false,
+      "arboles": 0,
+      "tipos": "mixto",
+      "suavizar": false,
+      "puntos": [
+        [
+          472.25,
+          -68.03
+        ],
+        [
+          171.56,
+          -111.37
+        ],
+        [
+          178.48,
+          -113.96
+        ],
+        [
+          185.73,
+          -118.36
+        ],
+        [
+          193.24,
+          -120.05
+        ],
+        [
+          473.17,
+          -79.21
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        60,
+        0,
+        0
+      ]
+    }
+  ],
+  "arboles": [],
+  "bloques": [
+    {
+      "id": "b1",
+      "puntos": [
+        [
+          -45.33,
+          -126.44
+        ],
+        [
+          66.16,
+          -108.03
+        ],
+        [
+          45.54,
+          16.11
+        ],
+        [
+          -67.93,
+          -1.49
+        ],
+        [
+          -57.26,
+          -62.9
+        ]
+      ],
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "asfalto",
+      "escala": 1,
+      "aceraAncho": 4,
+      "texturaAcera": "concreto",
+      "aceraLados": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ],
+      "bordeLados": [
+        true,
+        true,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "b3",
+      "puntos": [
+        [
+          85.16,
+          -70.15
+        ],
+        [
+          108.17,
+          -66.52
+        ],
+        [
+          106.58,
+          -57.87
+        ],
+        [
+          100.16,
+          -16.19
+        ],
+        [
+          90.11,
+          42.62
+        ],
+        [
+          66.9,
+          39.03
+        ]
+      ],
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "asfalto",
+      "escala": 1.6,
+      "aceraAncho": 2.5,
+      "texturaAcera": "concreto",
+      "aceraLados": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "bordeLados": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "b4",
+      "suavizar": false,
+      "puntos": [
+        [
+          65.89,
+          50.82
+        ],
+        [
+          208.21,
+          71.64
+        ],
+        [
+          196.25,
+          218.16
+        ],
+        [
+          161.46,
+          222.12
+        ],
+        [
+          125.84,
+          225.67
+        ],
+        [
+          49.39,
+          218.62
+        ],
+        [
+          40.46,
+          207.23
+        ],
+        [
+          43.39,
+          184.72
+        ],
+        [
+          56.32,
+          106.14
+        ],
+        [
+          65.96,
+          104.65
+        ],
+        [
+          71.49,
+          72.64
+        ],
+        [
+          62.95,
+          70.76
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "alto": 0.3,
+      "textura": "piedras",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin"
+    },
+    {
+      "id": "b5",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "asfalto",
+      "escala": 1.1,
+      "puntos": [
+        [
+          28.02,
+          128.49
+        ],
+        [
+          -61.18,
+          114.4
+        ],
+        [
+          -80.46,
+          215.18
+        ],
+        [
+          -36.58,
+          220.17
+        ],
+        [
+          -26.61,
+          221.43
+        ],
+        [
+          13.06,
+          222.88
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        25.5
+      ],
+      "aceraAncho": 3.5,
+      "texturaAcera": "concreto",
+      "aceraLados": [
+        false,
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "b6",
+      "suavizar": false,
+      "alto": 0.6,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "concreto",
+      "puntos": [
+        [
+          8.15,
+          -80.94
+        ],
+        [
+          31.68,
+          -76.17
+        ],
+        [
+          26.26,
+          -46.13
+        ],
+        [
+          2.16,
+          -50.64
+        ]
+      ],
+      "altoInterior": 0.6
+    },
+    {
+      "id": "b7",
+      "suavizar": false,
+      "alto": 1.5,
+      "textura": "piedras_cafe",
+      "escala": 2.5,
+      "aceraAncho": 0,
+      "texturaAcera": "piedras_cafe",
+      "puntos": [
+        [
+          -60.86,
+          132.12
+        ],
+        [
+          21.81,
+          145.48
+        ],
+        [
+          13.87,
+          196.8
+        ],
+        [
+          9.21,
+          218.93
+        ],
+        [
+          -17.02,
+          218.5
+        ],
+        [
+          -76.49,
+          211.77
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        26,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "b8",
+      "suavizar": false,
+      "alto": 0.6,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "concreto",
+      "puntos": [
+        [
+          -23.57,
+          -89.27
+        ],
+        [
+          8.46,
+          -83.53
+        ],
+        [
+          1.28,
+          -47.42
+        ],
+        [
+          -30.06,
+          -53.24
+        ]
+      ],
+      "altoInterior": 0.6
+    },
+    {
+      "id": "b9",
+      "suavizar": false,
+      "alto": 0.8,
+      "textura": "piedras_cafe",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "piedras_cafe",
+      "puntos": [
+        [
+          83.47,
+          -45.43
+        ],
+        [
+          104.11,
+          -41.82
+        ],
+        [
+          90.04,
+          42.61
+        ],
+        [
+          69.54,
+          39.44
+        ]
+      ],
+      "altoInterior": 0.8
+    },
+    {
+      "id": "b10",
+      "suavizar": false,
+      "alto": 1.5,
+      "textura": "asfalto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "asfalto",
+      "puntos": [
+        [
+          -57.87,
+          114.74
+        ],
+        [
+          -60.86,
+          132.12
+        ],
+        [
+          21.81,
+          145.48
+        ],
+        [
+          24.68,
+          127.96
+        ]
+      ],
+      "altoInterior": 1.5
+    },
+    {
+      "id": "b11",
+      "puntos": [
+        [
+          91.01,
+          -104.26
+        ],
+        [
+          292.25,
+          -74.99
+        ],
+        [
+          288.62,
+          -48.38
+        ],
+        [
+          287.72,
+          -42.29
+        ],
+        [
+          107.59,
+          -66.56
+        ],
+        [
+          85.16,
+          -70.15
+        ]
+      ],
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "asfalto",
+      "escala": 1.6,
+      "aceraAncho": 2.5,
+      "texturaAcera": "concreto",
+      "aceraLados": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        true
+      ],
+      "bordeLados": [
+        true,
+        true,
+        true,
+        false,
+        false,
+        true
+      ]
+    },
+    {
+      "id": "b12",
+      "suavizar": false,
+      "alto": 0.8,
+      "textura": "piedras_cafe",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "piedras_cafe",
+      "puntos": [
+        [
+          108.09,
+          -65.84
+        ],
+        [
+          235.96,
+          -48.96
+        ],
+        [
+          233.05,
+          -28.35
+        ],
+        [
+          104.88,
+          -46.53
+        ]
+      ],
+      "altoInterior": 0.8
+    },
+    {
+      "id": "b13",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "cesped",
+      "escala": 1,
+      "aceraAncho": 4,
+      "texturaAcera": "concreto",
+      "puntos": [
+        [
+          37.58,
+          67.89
+        ],
+        [
+          45.91,
+          13.82
+        ],
+        [
+          -19.69,
+          3.14
+        ],
+        [
+          -67.45,
+          -4.8
+        ],
+        [
+          -78.92,
+          47.86
+        ]
+      ],
+      "altoInterior": 0.33,
+      "aceraLados": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ],
+      "bordeLados": [
+        true,
+        false,
+        false,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "b14",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "tierra",
+      "escala": 1,
+      "aceraAncho": 3.5,
+      "texturaAcera": "concreto",
+      "altoInterior": 0.33,
+      "puntos": [
+        [
+          28.02,
+          128.49
+        ],
+        [
+          -61.15,
+          114.29
+        ],
+        [
+          -51.35,
+          64.88
+        ],
+        [
+          35.43,
+          80.26
+        ]
+      ],
+      "aceraLados": [
+        false,
+        true,
+        true,
+        true
+      ],
+      "bordeLados": [
+        false,
+        true,
+        true,
+        true
+      ]
+    },
+    {
+      "id": "b15",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "cesped_isla",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          -6.4,
+          -172.14
+        ],
+        [
+          76.76,
+          -158.47
+        ],
+        [
+          84.29,
+          -207.8
+        ],
+        [
+          74.83,
+          -196.81
+        ],
+        [
+          56.41,
+          -182.18
+        ],
+        [
+          22.64,
+          -174.42
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        60,
+        10,
+        60
+      ]
+    },
+    {
+      "id": "b16",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "cesped_isla",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          101.07,
+          -154.63
+        ],
+        [
+          174.4,
+          -143.06
+        ],
+        [
+          135.81,
+          -158.78
+        ],
+        [
+          122.23,
+          -169.7
+        ],
+        [
+          113.82,
+          -184.09
+        ],
+        [
+          108.17,
+          -205.21
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        60,
+        60,
+        60,
+        0
+      ]
+    },
+    {
+      "id": "b17",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          -166.09,
+          217.68
+        ],
+        [
+          -65.3,
+          230.15
+        ],
+        [
+          -27.72,
+          234.76
+        ],
+        [
+          -18.82,
+          235.02
+        ],
+        [
+          11.46,
+          236.25
+        ],
+        [
+          2.95,
+          306.36
+        ],
+        [
+          -176.04,
+          274.04
+        ]
+      ]
+    },
+    {
+      "id": "b18",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          36.56,
+          236.65
+        ],
+        [
+          28.23,
+          305.55
+        ],
+        [
+          242.52,
+          305.29
+        ],
+        [
+          251.98,
+          223.77
+        ],
+        [
+          144.93,
+          237.69
+        ],
+        [
+          131.4,
+          239.43
+        ],
+        [
+          85.86,
+          238.09
+        ]
+      ]
+    },
+    {
+      "id": "b19",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          -80.46,
+          215.18
+        ],
+        [
+          -163.15,
+          204.95
+        ],
+        [
+          -130.55,
+          50.85
+        ],
+        [
+          -51.35,
+          64.88
+        ]
+      ]
+    },
+    {
+      "id": "b20",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          -78.92,
+          47.86
+        ],
+        [
+          -129.78,
+          38.8
+        ],
+        [
+          -98.99,
+          -135.21
+        ],
+        [
+          -45.33,
+          -126.44
+        ],
+        [
+          -61.3,
+          -39.63
+        ],
+        [
+          -69.41,
+          4.2
+        ]
+      ]
+    },
+    {
+      "id": "b21",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          -90.95,
+          -186.17
+        ],
+        [
+          -24.3,
+          -175.09
+        ],
+        [
+          -6.1,
+          -177.17
+        ],
+        [
+          25.74,
+          -180.65
+        ],
+        [
+          45.1,
+          -184.75
+        ],
+        [
+          57.16,
+          -189.8
+        ],
+        [
+          71.54,
+          -201.41
+        ],
+        [
+          85.62,
+          -216.82
+        ],
+        [
+          88.64,
+          -237.25
+        ],
+        [
+          -81.9,
+          -203.99
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        60,
+        0,
+        60,
+        60,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "id": "b22",
+      "suavizar": false,
+      "alto": 0.3,
+      "textura": "concreto",
+      "escala": 1,
+      "aceraAncho": 0,
+      "texturaAcera": "adoquin",
+      "puntos": [
+        [
+          112.26,
+          -232.94
+        ],
+        [
+          110.11,
+          -218.39
+        ],
+        [
+          116.4,
+          -194.18
+        ],
+        [
+          124.76,
+          -174.71
+        ],
+        [
+          139.1,
+          -163.86
+        ],
+        [
+          159.4,
+          -154.55
+        ],
+        [
+          175.76,
+          -148.27
+        ],
+        [
+          191.34,
+          -140.62
+        ],
+        [
+          199.37,
+          -224.95
+        ]
+      ],
+      "radios": [
+        0,
+        0,
+        0,
+        60,
+        60,
+        10,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "barreras": [
+    {
+      "id": "r1",
+      "x": -44.95,
+      "z": -135.51,
+      "dx": -0.9841,
+      "dz": -0.1776,
+      "ancho": 19.59
+    },
+    {
+      "id": "r2",
+      "x": 198.16,
+      "z": -97.13,
+      "dx": 0.9874,
+      "dz": 0.1581,
+      "ancho": 19.64
+    },
+    {
+      "id": "r3",
+      "x": 45.5,
+      "z": -131.7,
+      "dx": 0.1656,
+      "dz": -0.9862,
+      "ancho": 114.62
+    },
+    {
+      "id": "r4",
+      "x": 24.15,
+      "z": 236.75,
+      "dx": -0.0603,
+      "dz": 0.9982,
+      "ancho": 24
+    },
+    {
+      "id": "r5",
+      "x": -47.85,
+      "z": 59.49,
+      "dx": -0.976,
+      "dz": -0.2179,
+      "ancho": 11.29
+    },
+    {
+      "id": "r6",
+      "x": -459.86,
+      "z": 266.43,
+      "dx": -0.2245,
+      "dz": 0.9745,
+      "ancho": 13.46
+    },
+    {
+      "id": "r7",
+      "x": 448.05,
+      "z": 276.24,
+      "dx": 0.19,
+      "dz": 0.9818,
+      "ancho": 9.89
+    },
+    {
+      "id": "r8",
+      "dx": -0.985,
+      "dz": -0.1724,
+      "ancho": 13.46,
+      "x": -467.01,
+      "z": 256.64
+    },
+    {
+      "id": "r9",
+      "x": -82.52,
+      "z": 222.16,
+      "dx": -0.976,
+      "dz": -0.2179,
+      "ancho": 13.6
+    },
+    {
+      "id": "r10",
+      "x": 170.89,
+      "z": 59.74,
+      "dx": 0.9874,
+      "dz": 0.1581,
+      "ancho": 13.3
+    },
+    {
+      "id": "r11",
+      "x": 143.38,
+      "z": 231.28,
+      "dx": 0.997,
+      "dz": -0.0772,
+      "ancho": 13.3
+    },
+    {
+      "id": "r12",
+      "x": 193.66,
+      "z": -70.22,
+      "dx": 0.9874,
+      "dz": 0.1581,
+      "ancho": 31.23
+    }
+  ],
+  "zonaJugable": [
+    [
+      -42.96,
+      -145.8
+    ],
+    [
+      108.29,
+      -120.93
+    ],
+    [
+      199.77,
+      -104.84
+    ],
+    [
+      187.2,
+      -38.09
+    ],
+    [
+      150.43,
+      175.7
+    ],
+    [
+      143.66,
+      240.52
+    ],
+    [
+      96.26,
+      240.52
+    ],
+    [
+      34.35,
+      235.68
+    ],
+    [
+      -8.64,
+      236
+    ],
+    [
+      -63.03,
+      229.96
+    ],
+    [
+      -85.48,
+      227.8
+    ],
+    [
+      -52.69,
+      71.36
+    ],
+    [
+      -39.29,
+      6.34
+    ],
+    [
+      -69.55,
+      1.76
+    ],
+    [
+      -53.99,
+      -84.23
+    ]
+  ],
+  "zonaReservada": [],
+  "spawn": {
+    "x": 62.17,
+    "z": -111.04,
+    "hd": 1.4923
+  },
+  "luces": []
+}

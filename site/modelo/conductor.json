@@ -1,0 +1,400 @@
+{
+ "version": 1,
+ "espacio": "local de modelo/arena.glb tal como lo carga three.js: Y arriba, el carro avanza hacia +Z, conductor a +X. Unidades: metros.",
+ "modelo": {
+  "archivo": "conductor.glb",
+  "altura_m": 1.7499,
+  "hueso_raiz": "DEF-spine",
+  "orientacion": "en reposo y en Idle/Caminar el personaje mira +Z local, con el origen en el suelo bajo el pelvis"
+ },
+ "fps": 24.0,
+ "clips": {
+  "Idle": {
+   "duracion_s": 9.91667,
+   "cuadros": 239,
+   "bucle": true,
+   "en_el_lugar": true,
+   "espacio": "marco del personaje (origen bajo el pelvis, mira +Z)"
+  },
+  "Caminar": {
+   "duracion_s": 0.91667,
+   "cuadros": 23,
+   "bucle": true,
+   "en_el_lugar": true,
+   "espacio": "marco del personaje (origen bajo el pelvis, mira +Z)"
+  },
+  "Entrar": {
+   "duracion_s": 6.75,
+   "cuadros": 163,
+   "bucle": false,
+   "en_el_lugar": false,
+   "espacio": "espacio del carro (arena.glb): colgar el modelo del grupo del carro, sin transformacion propia"
+  },
+  "Manejar": {
+   "duracion_s": 1.95833,
+   "cuadros": 48,
+   "bucle": true,
+   "en_el_lugar": false,
+   "espacio": "espacio del carro (arena.glb): colgar el modelo del grupo del carro, sin transformacion propia"
+  }
+ },
+ "caminar": {
+  "velocidad": 1.3762,
+  "unidad": "m/s a velocidad 1.0 del clip",
+  "velocidad_fuente_mps": 1.3572,
+  "fps": 24.0,
+  "zancada_por_ciclo_m": 1.2615,
+  "duracion_ciclo_s": 0.91667,
+  "nota": "el ciclo fuente dura 22.3077 cuadros; el clip lo reparte en 22 intervalos de 1/24 s (1.4 % mas rapido) y la velocidad es la del clip",
+  "guinada_cuerpo_vs_avance_deg": -4.166,
+  "inicio_apoyo_pie_s": {
+   "L": [
+    0.25
+   ],
+   "R": [
+    0.6667
+   ]
+  },
+  "resbalamiento_pies_pct": {
+   "L": 1.54,
+   "R": 2.7
+  },
+  "nota_direccion": "el clip esta orientado segun la direccion de avance; el torso conserva 4.2 grados de guinada propia de la secuencia"
+ },
+ "entrar": {
+  "descripcion": "del reposo de pie junto a la puerta hasta sentado con las manos en el volante; incluye abrir y cerrar la puerta",
+  "cuadro0": {
+   "pelvis": [
+    2.16874,
+    0.92859,
+    0.08172
+   ],
+   "suelo_xz": [
+    2.16874,
+    0.08172
+   ],
+   "rumbo_rad": -1.69261,
+   "rumbo_deg": -96.98
+  },
+  "cuadro0_nota": "pelvis (x,y,z) en espacio del carro; suelo_xz y rumbo_rad: poner el grupo del caminante ahi (position.x/z, rotation.y; 0 = mira +Z) antes de cambiar al clip",
+  "final_sentado": {
+   "pelvis": [
+    0.35,
+    0.64129,
+    -0.09197
+   ],
+   "cabeza_hueso": [
+    0.35,
+    1.28837,
+    -0.21499
+   ],
+   "rumbo_rad": 0.0
+  },
+  "duracion_s": 6.75,
+  "puerta": {
+   "empieza_a_abrir_s": 0.625,
+   "abierta_menos67_s": 1.375,
+   "empieza_a_cerrar_s": 3.0,
+   "cerrada_s": 4.75,
+   "angulo_abierta_rad": -1.169371,
+   "curva_rotacion_y_rad": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    -0.010426,
+    -0.040102,
+    -0.08662,
+    -0.147575,
+    -0.22056,
+    -0.30317,
+    -0.392998,
+    -0.487639,
+    -0.584685,
+    -0.681732,
+    -0.776372,
+    -0.866201,
+    -0.94881,
+    -1.021796,
+    -1.082751,
+    -1.129269,
+    -1.158944,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.169371,
+    -1.164755,
+    -1.151449,
+    -1.130265,
+    -1.102014,
+    -1.067507,
+    -1.027556,
+    -0.982972,
+    -0.934567,
+    -0.883152,
+    -0.829539,
+    -0.77454,
+    -0.718965,
+    -0.663626,
+    -0.609335,
+    -0.556904,
+    -0.507143,
+    -0.460864,
+    -0.418879,
+    -0.381782,
+    -0.349296,
+    -0.320929,
+    -0.296188,
+    -0.274578,
+    -0.255606,
+    -0.23878,
+    -0.223606,
+    -0.209591,
+    -0.196241,
+    -0.183062,
+    -0.169563,
+    -0.155249,
+    -0.139626,
+    -0.1224,
+    -0.104061,
+    -0.085299,
+    -0.066803,
+    -0.049262,
+    -0.033365,
+    -0.019802,
+    -0.00926,
+    -0.00243,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "curva_dt_s": 0.041667
+  }
+ },
+ "puerta_DI": {
+  "nodo": "Puerta_DI",
+  "pivote": [
+   0.994,
+   0.9,
+   0.8305
+  ],
+  "pivote_nota": "= position del nodo Puerta_DI en arena.glb; la bisagra es el origen del nodo",
+  "eje": [
+   0,
+   1,
+   0
+  ],
+  "signo_rotation_y": -1,
+  "abierta_rotation_y_rad": -1.169371,
+  "regla": "Puerta_DI.rotation.y = entrar.puerta.curva_rotacion_y_rad[i] (negativa = abre hacia afuera, +X)"
+ },
+ "manejar": {
+  "duracion_s": 1.95833,
+  "empalma_con": "ultimo cuadro de Entrar == primer cuadro de Manejar (misma pose, f286 de la secuencia)"
+ },
+ "verificacion": {
+  "coordenadas": {
+   "transformacion": "secuencia -> arena.glb: (x, y, z)_seq -> (-x, z, y + 0.1105) en ejes three; T = Rz(180) @ Tr(0, 0.1105, 0) en Blender",
+   "bisagra": "pivote de Puerta_DI en arena.glb vs Bisagra_Puerta de la secuencia transformada: diferencia 1.6e-08 m",
+   "puerta_chamfer_mm": {
+    "signo -67 (usado)": 13.0,
+    "signo +67 (descartado)": 635.2
+   },
+   "nodos_arena_en_three": [
+    [
+     "Puerta_DI",
+     [
+      0.994,
+      0.9,
+      0.8305
+     ]
+    ],
+    [
+     "Volante",
+     [
+      0.35,
+      1.03,
+      0.2405
+     ]
+    ],
+    [
+     "SOCKET_Cam_Conductor",
+     [
+      0.35,
+      1.35,
+      -0.1095
+     ]
+    ],
+    [
+     "Rueda_DI",
+     [
+      0.898,
+      0.362,
+      1.2805
+     ]
+    ],
+    [
+     "Rueda_DD",
+     [
+      -0.898,
+      0.362,
+      1.2805
+     ]
+    ],
+    [
+     "Rueda_TI",
+     [
+      0.904,
+      0.362,
+      -1.2815
+     ]
+    ],
+    [
+     "Rueda_TD",
+     [
+      -0.905,
+      0.362,
+      -1.2795
+     ]
+    ]
+   ],
+   "volante_coincide": "Volante_Arena_Root (-0.35, 0.13, 1.03) -> (0.35, 1.03, 0.2405) = nodo Volante de arena.glb"
+  },
+  "reimport_blender": {
+   "triangulos": 95377,
+   "huesos": 71,
+   "max_influencias": 4,
+   "error_cabeza_hueso_max_mm": {
+    "Caminar": 9.1,
+    "Entrar": 8.6,
+    "Idle": 5.2,
+    "Manejar": 4.5
+   }
+  },
+  "three_node": {
+   "triangulos": 95377,
+   "huesos": 71,
+   "pistas_sin_objetivo": 0,
+   "error_pose_max_mm": {
+    "Caminar": 9.1,
+    "Entrar": 8.6,
+    "Idle": 5.2,
+    "Manejar": 4.5
+   }
+  },
+  "contacto": {
+   "suelo_z_min_m": {
+    "Idle": -0.008869035169482231,
+    "Caminar": 0.005046055186539888,
+    "Entrar_cuadro0": -0.007962650619447231,
+    "Manejar": 0.2603786289691925
+   },
+   "mano_volante_penetracion_max_mm": {
+    "L": 13.5,
+    "R": 9.2
+   }
+  },
+  "defectos_conocidos": [
+   "Entrar: la mano no toca la manija al abrir (0.6-1.4 s); la puerta se abre 'sola' como en la secuencia aprobada.",
+   "Entrar: en el cierre (3.5-4.5 s) la mano izquierda atraviesa la lamina de Puerta_DI (dedos asoman por fuera hacia 3.7 s); la puerta de arena.glb no lleva la tarjeta interior de la secuencia.",
+   "Manejar: los dedos penetran hasta 14 mm (izq.) y 9 mm (der.) en el aro del Volante (agarre envolvente).",
+   "Manejar: las manos no siguen el giro del volante (el bucle es con el volante recto).",
+   "Pies: 8-9 mm por debajo del suelo en Idle y en el cuadro 0 de Entrar (igual que en la secuencia).",
+   "Mallas decimadas: parches de textura rectangulares en la mano a ~15 cm de distancia (islas UV Tripo)."
+  ]
+ }
+}

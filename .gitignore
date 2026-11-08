@@ -1,0 +1,15 @@
+# fuentes de Blender (.blend, texturas de trabajo, informes): pesan ~1,1 GB y no forman parte del juego
+site/blender/
+# copias de seguridad del código y mapas de trabajo
+*.pre-*.html
+index.original.html
+mapa.pre-v001.json
+mapa_recuperado_21h09.json
+# capturas y registros de trabajo
+vista-*.png
+rea.err
+# varios
+node_modules/
+__pycache__/
+*.tmp
+Thumbs.db
