@@ -81,6 +81,26 @@
       "emisivoSiempre": [
         "BC_Luz_Calida",
         "BC_Pantalla_Menu"
+      ],
+      "brilloMat": {
+        "BC_Luz_Calida": 2.0
+      },
+      "ventanasLuz": {
+        "materiales": [
+          "BC_Vidrio"
+        ],
+        "prob": 1,
+        "alfa": 0.6
+      },
+      "pantallasExtra": [
+        {
+          "x": -4.2,
+          "y": 7.2,
+          "z": 6.3,
+          "ancho": 4,
+          "alto": 2.15,
+          "ySuelo": 7.0
+        }
       ]
     },
     {
@@ -215,6 +235,16 @@
           512,
           155
         ]
+      },
+      "brilloMat": {
+        "MAT_Interior_Light": 2.2
+      },
+      "ventanasLuz": {
+        "materiales": [
+          "MAT_Glass_Storefront"
+        ],
+        "prob": 0.9,
+        "alfa": 0.6
       }
     },
     {
@@ -271,7 +301,7 @@
     {
       "id": "semaforo-gantry",
       "nombre": "Semáforo de pórtico en Y",
-      "categoria": "semaforos",
+      "categoria": "complementos",
       "archivo": "semaforo_lod0.glb",
       "lods": [
         {
@@ -341,7 +371,19 @@
           "alto": 5,
           "ySuelo": 10
         }
-      ]
+      ],
+      "brilloMat": {
+        "MAT_Window_Interior": 2.2,
+        "MAT_Interior_Light": 2.0
+      },
+      "ventanasLuz": {
+        "materiales": [
+          "MAT_Glass_Window",
+          "MAT_Glass_Entrance"
+        ],
+        "prob": 0.9,
+        "alfa": 0.6
+      }
     },
     {
       "id": "pared-zinc-tramo",
@@ -414,164 +456,554 @@
       }
     },
     {
-      "id": "edificio-aleatorio-01",
-      "nombre": "Bloque de ladrillo rojo (7 plantas)",
+      "id": "residencial-las-lermas-plaza",
+      "nombre": "Residencial Las Lermas Plaza (9 pisos)",
       "categoria": "edificios",
-      "archivo": "edificio_01_bloque_ladrillo.glb",
-      "colision": "edificio_01_bloque_ladrillo_col.glb",
-      "miniatura": "edificio_01_bloque_ladrillo_top.png",
+      "archivo": "residencial_las_lermas_lod0.glb",
+      "miniatura": "residencial_las_lermas_top.png",
       "huella": {
-        "ancho": 17.79,
-        "fondo": 14.02,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 34.5,
+        "fondo": 17.52,
+        "cx": 1.75,
+        "cz": -1.24
       },
-      "alto": 29.6,
-      "frente": "+z"
+      "alto": 33.9,
+      "frente": "+z",
+      "lods": [
+        {
+          "archivo": "residencial_las_lermas_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "residencial_las_lermas_lod1.glb",
+          "desde": 80
+        },
+        {
+          "archivo": "residencial_las_lermas_lod2.glb",
+          "desde": 200
+        }
+      ],
+      "colision": "residencial_las_lermas_collision.glb",
+      "ventanasLuz": {
+        "materiales": [
+          "MAT_Window_BlueGrey_Glass"
+        ],
+        "prob": 0.42,
+        "apagar": [
+          "MAT_Interior_Simple"
+        ]
+      },
+      "pantallasExtra": [
+        {
+          "x": 1.75,
+          "y": 31.9,
+          "z": 6.9,
+          "ancho": 16,
+          "alto": 4,
+          "ySuelo": 31.7
+        }
+      ]
     },
     {
-      "id": "edificio-aleatorio-02",
-      "nombre": "Torre de oficinas (17 plantas)",
-      "categoria": "edificios",
-      "archivo": "edificio_02_torre_oficinas.glb",
-      "colision": "edificio_02_torre_oficinas_col.glb",
-      "miniatura": "edificio_02_torre_oficinas_top.png",
+      "id": "vehiculo-arena-pro",
+      "nombre": "Arena Pro",
+      "categoria": "vehiculos",
+      "archivo": "vehiculo_arena_lod0.glb",
+      "lods": [
+        {
+          "archivo": "vehiculo_arena_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "vehiculo_arena_lod1.glb",
+          "desde": 35
+        },
+        {
+          "archivo": "vehiculo_arena_lod2.glb",
+          "desde": 90
+        }
+      ],
+      "colision": "vehiculo_arena_collision.glb",
+      "miniatura": "vehiculo_arena_top.png",
       "huella": {
-        "ancho": 24.25,
-        "fondo": 21.94,
-        "cx": 0.0,
-        "cz": -0.035
+        "ancho": 2.053,
+        "fondo": 4.34,
+        "cx": 0,
+        "cz": 0.01
       },
-      "alto": 70.8,
-      "frente": "+z"
+      "alto": 1.68,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "colorable": {
+        "materiales": [
+          "Arena_Body",
+          "Arena_Body_Puerta"
+        ],
+        "defecto": "#ffffff",
+        "colores": [
+          "#ffffff",
+          "#111111",
+          "#c1272d",
+          "#1f4fa3",
+          "#8a8d91",
+          "#2e7d32",
+          "#f2b705",
+          "#6a1b9a",
+          "#e65100"
+        ]
+      },
+      "ajuste": "arena"
     },
     {
-      "id": "edificio-aleatorio-03",
-      "nombre": "Locales y viviendas, estuco arena (3 plantas)",
-      "categoria": "edificios",
-      "archivo": "edificio_03_comercial_viviendas.glb",
-      "colision": "edificio_03_comercial_viviendas_col.glb",
-      "miniatura": "edificio_03_comercial_viviendas_top.png",
+      "id": "vehiculo-elite",
+      "nombre": "Elite",
+      "categoria": "vehiculos",
+      "archivo": "vehiculo_elite_lod0.glb",
+      "lods": [
+        {
+          "archivo": "vehiculo_elite_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "vehiculo_elite_lod1.glb",
+          "desde": 35
+        },
+        {
+          "archivo": "vehiculo_elite_lod2.glb",
+          "desde": 90
+        }
+      ],
+      "colision": "vehiculo_elite_collision.glb",
+      "miniatura": "vehiculo_elite_top.png",
       "huella": {
-        "ancho": 10.49,
-        "fondo": 14.36,
-        "cx": 0.0,
-        "cz": 0.575
+        "ancho": 2.0,
+        "fondo": 4.782,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 13.12,
-      "frente": "+z"
+      "alto": 1.504,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "colorable": {
+        "materiales": [
+          "Elite_Pintura"
+        ],
+        "defecto": "#ffffff",
+        "colores": [
+          "#ffffff",
+          "#111111",
+          "#c1272d",
+          "#1f4fa3",
+          "#8a8d91",
+          "#2e7d32",
+          "#f2b705",
+          "#6a1b9a",
+          "#e65100"
+        ]
+      }
     },
     {
-      "id": "edificio-aleatorio-04",
-      "nombre": "Casa con tejado de teja (2 plantas)",
-      "categoria": "edificios",
-      "archivo": "edificio_04_casa_tejado.glb",
-      "colision": "edificio_04_casa_tejado_col.glb",
-      "miniatura": "edificio_04_casa_tejado_top.png",
+      "id": "poste-luz-doble-led",
+      "nombre": "Poste de luz doble LED",
+      "categoria": "complementos",
+      "archivo": "streetlight_double_led_lod0.glb",
+      "lods": [
+        {
+          "archivo": "streetlight_double_led_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "streetlight_double_led_lod1.glb",
+          "desde": 40
+        },
+        {
+          "archivo": "streetlight_double_led_lod2.glb",
+          "desde": 110
+        }
+      ],
+      "colision": "streetlight_double_led_collision.glb",
+      "miniatura": "streetlight_double_led_top.png",
       "huella": {
-        "ancho": 9.16,
-        "fondo": 8.91,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 7.0,
+        "fondo": 0.4,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 8.93,
-      "frente": "+z"
+      "alto": 10.0,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "brilloMat": {
+        "MAT_LED_LEFT": 1.0,
+        "MAT_LED_RIGHT": 1.0
+      },
+      "luces": [
+        [
+          3.06,
+          9.833,
+          0
+        ],
+        [
+          -3.06,
+          9.833,
+          0
+        ]
+      ]
     },
     {
-      "id": "edificio-aleatorio-05",
-      "nombre": "Nave industrial",
+      "id": "plaza-boulevard-chico-norte",
+      "nombre": "Plaza Boulevard Chico Norte",
       "categoria": "edificios",
-      "archivo": "edificio_05_nave_industrial.glb",
-      "colision": "edificio_05_nave_industrial_col.glb",
-      "miniatura": "edificio_05_nave_industrial_top.png",
+      "archivo": "plaza_boulevard_lod0.glb",
+      "lods": [
+        {
+          "archivo": "plaza_boulevard_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "plaza_boulevard_lod1.glb",
+          "desde": 60
+        },
+        {
+          "archivo": "plaza_boulevard_lod2.glb",
+          "desde": 160
+        }
+      ],
+      "colision": "plaza_boulevard_collision.glb",
+      "miniatura": "plaza_boulevard_top.png",
       "huella": {
-        "ancho": 24.0,
-        "fondo": 19.87,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 27.0,
+        "fondo": 15.0,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 8.76,
-      "frente": "+z"
+      "alto": 21.8,
+      "frente": "+z",
+      "brilloMat": {
+        "MAT_Downlight": 1.0
+      },
+      "pantallasExtra": [
+        {
+          "x": 0,
+          "y": 21.9,
+          "z": 6.6,
+          "ancho": 15,
+          "alto": 3.75,
+          "ySuelo": 21.8
+        }
+      ]
     },
     {
-      "id": "edificio-aleatorio-06",
-      "nombre": "Apartamentos de hormigón (11 plantas)",
-      "categoria": "edificios",
-      "archivo": "edificio_06_apartamentos_hormigon.glb",
-      "colision": "edificio_06_apartamentos_hormigon_col.glb",
-      "miniatura": "edificio_06_apartamentos_hormigon_top.png",
+      "id": "anuncio-burger",
+      "nombre": "Anuncio Burger Crown (poste giratorio)",
+      "categoria": "complementos",
+      "archivo": "anuncio_burger_lod0.glb",
+      "miniatura": "anuncio_burger_top.png",
+      "lods": [
+        {
+          "archivo": "anuncio_burger_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "anuncio_burger_lod1.glb",
+          "desde": 120
+        },
+        {
+          "archivo": "anuncio_burger_lod2.glb",
+          "desde": 300
+        }
+      ],
+      "colision": "anuncio_burger_collision.glb",
       "huella": {
-        "ancho": 22.04,
-        "fondo": 15.07,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 5.0,
+        "fondo": 5.0,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 41.8,
-      "frente": "+z"
+      "alto": 13.4,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "giratorio": {
+        "nodo": "Anuncio_Giratorio",
+        "vel": 0.8
+      },
+      "brilloMat": {
+        "MAT_Cartel_Cara": 1.1,
+        "MAT_Cartel_Logo": 1.2
+      },
+      "halos": [
+        [
+          0,
+          13.0,
+          0,
+          7
+        ],
+        [
+          0,
+          11.1,
+          0,
+          8
+        ]
+      ]
     },
     {
-      "id": "edificio-aleatorio-07",
-      "nombre": "Bloque de ladrillo claro (7 plantas)",
+      "id": "boulevard-beauty-center",
+      "nombre": "Boulevard Beauty Center",
       "categoria": "edificios",
-      "archivo": "edificio_07_bloque_ladrillo.glb",
-      "colision": "edificio_07_bloque_ladrillo_col.glb",
-      "miniatura": "edificio_07_bloque_ladrillo_top.png",
+      "archivo": "boulevard_beauty_center_lod0.glb",
+      "lods": [
+        {
+          "archivo": "boulevard_beauty_center_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "boulevard_beauty_center_lod1.glb",
+          "desde": 50
+        },
+        {
+          "archivo": "boulevard_beauty_center_lod2.glb",
+          "desde": 130
+        }
+      ],
+      "colision": "boulevard_beauty_center_collision.glb",
+      "miniatura": "boulevard_beauty_center_top.png",
       "huella": {
-        "ancho": 15.73,
-        "fondo": 13.9,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 27.0,
+        "fondo": 15.0,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 29.6,
-      "frente": "+z"
+      "alto": 9.8,
+      "frente": "+z",
+      "brilloMat": {
+        "MAT_Wall_Light": 1.0
+      },
+      "pantallasExtra": [
+        {
+          "x": 0,
+          "y": 9.9,
+          "z": 6.6,
+          "ancho": 12,
+          "alto": 3,
+          "ySuelo": 9.8
+        }
+      ]
     },
     {
-      "id": "edificio-aleatorio-08",
-      "nombre": "Locales y viviendas, terracota (4 plantas)",
+      "id": "edificio-construccion-60x30",
+      "nombre": "Edificio en construcción 60 × 30",
       "categoria": "edificios",
-      "archivo": "edificio_08_comercial_viviendas.glb",
-      "colision": "edificio_08_comercial_viviendas_col.glb",
-      "miniatura": "edificio_08_comercial_viviendas_top.png",
+      "archivo": "edificio_construccion_60x30_lod0.glb",
+      "lods": [
+        {
+          "archivo": "edificio_construccion_60x30_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "edificio_construccion_60x30_lod1.glb",
+          "desde": 80
+        },
+        {
+          "archivo": "edificio_construccion_60x30_lod2.glb",
+          "desde": 200
+        }
+      ],
+      "colision": "edificio_construccion_60x30_collision.glb",
+      "miniatura": "edificio_construccion_60x30_top.png",
       "huella": {
-        "ancho": 13.12,
-        "fondo": 12.41,
-        "cx": 0.0,
-        "cz": 0.575
+        "ancho": 60.0,
+        "fondo": 30.0,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 16.12,
-      "frente": "+z"
+      "alto": 25.65,
+      "frente": "+z",
+      "brilloMat": {
+        "MAT_Aviation_Light": 1.0
+      },
+      "pantallasExtra": [
+        {
+          "x": -14,
+          "y": 2.2,
+          "z": 15.8,
+          "ancho": 16,
+          "alto": 4,
+          "ySuelo": 0
+        },
+        {
+          "x": 14,
+          "y": 2.2,
+          "z": 15.8,
+          "ancho": 16,
+          "alto": 4,
+          "ySuelo": 0
+        }
+      ]
     },
     {
-      "id": "edificio-aleatorio-09",
-      "nombre": "Casa con teja gris (2 plantas)",
+      "id": "edificio-construccion-40x40",
+      "nombre": "Edificio en construcción 40 × 40",
       "categoria": "edificios",
-      "archivo": "edificio_09_casa_tejado.glb",
-      "colision": "edificio_09_casa_tejado_col.glb",
-      "miniatura": "edificio_09_casa_tejado_top.png",
+      "archivo": "edificio_construccion_40x40_lod0.glb",
+      "lods": [
+        {
+          "archivo": "edificio_construccion_40x40_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "edificio_construccion_40x40_lod1.glb",
+          "desde": 70
+        },
+        {
+          "archivo": "edificio_construccion_40x40_lod2.glb",
+          "desde": 180
+        }
+      ],
+      "colision": "edificio_construccion_40x40_collision.glb",
+      "miniatura": "edificio_construccion_40x40_top.png",
       "huella": {
-        "ancho": 9.48,
-        "fondo": 8.07,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 40.0,
+        "fondo": 40.0,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 9.24,
-      "frente": "+z"
+      "alto": 25.65,
+      "frente": "+z",
+      "brilloMat": {
+        "MAT_Aviation_Light": 1.0
+      },
+      "pantallasExtra": [
+        {
+          "x": 0,
+          "y": 2.2,
+          "z": 20.8,
+          "ancho": 18,
+          "alto": 4,
+          "ySuelo": 0
+        }
+      ]
     },
     {
-      "id": "edificio-aleatorio-10",
-      "nombre": "Edificio de esquina (6 plantas)",
-      "categoria": "edificios",
-      "archivo": "edificio_10_edificio_esquina.glb",
-      "colision": "edificio_10_edificio_esquina_col.glb",
-      "miniatura": "edificio_10_edificio_esquina_top.png",
+      "id": "vehiculo-refine",
+      "nombre": "Refine",
+      "categoria": "vehiculos",
+      "archivo": "vehiculo_refine_lod0.glb",
+      "lods": [
+        {
+          "archivo": "vehiculo_refine_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "vehiculo_refine_lod1.glb",
+          "desde": 35
+        },
+        {
+          "archivo": "vehiculo_refine_lod2.glb",
+          "desde": 90
+        }
+      ],
+      "colision": "vehiculo_refine_collision.glb",
+      "miniatura": "vehiculo_refine_top.png",
       "huella": {
-        "ancho": 18.33,
-        "fondo": 16.01,
-        "cx": 0.0,
-        "cz": 0.0
+        "ancho": 2.12,
+        "fondo": 5.24,
+        "cx": 0,
+        "cz": 0
       },
-      "alto": 26.85,
-      "frente": "+z"
+      "alto": 1.83,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "colorable": {
+        "materiales": [
+          "Refine_Pintura"
+        ],
+        "defecto": "#ffffff",
+        "colores": [
+          "#ffffff",
+          "#111111",
+          "#c1272d",
+          "#1f4fa3",
+          "#8a8d91",
+          "#2e7d32",
+          "#f2b705",
+          "#6a1b9a",
+          "#e65100"
+        ]
+      }
+    },
+    {
+      "id": "muro-piedra-tramo",
+      "nombre": "Muro de piedra tipo hormigón (tramo de 4 m)",
+      "categoria": "complementos",
+      "archivo": "muro_piedra_lod0.glb",
+      "lods": [
+        {
+          "archivo": "muro_piedra_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "muro_piedra_lod1.glb",
+          "desde": 30
+        },
+        {
+          "archivo": "muro_piedra_lod2.glb",
+          "desde": 80
+        }
+      ],
+      "colision": "muro_piedra_collision.glb",
+      "miniatura": "muro_piedra_top.png",
+      "huella": {
+        "ancho": 4.04,
+        "fondo": 0.4,
+        "cx": 0,
+        "cz": 0
+      },
+      "alto": 2.5,
+      "frente": "+z",
+      "puedeRebasar": true,
+      "modular": {
+        "eje": "x",
+        "paso": 4.0
+      }
+    },
+    {
+      "id": "valla-enrejado-tramo",
+      "nombre": "Valla de enrejado negro con base de concreto (tramo de 3 m)",
+      "categoria": "complementos",
+      "archivo": "valla_enrejado_lod0.glb",
+      "lods": [
+        {
+          "archivo": "valla_enrejado_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "valla_enrejado_lod1.glb",
+          "desde": 30
+        },
+        {
+          "archivo": "valla_enrejado_lod2.glb",
+          "desde": 80
+        }
+      ],
+      "colision": "valla_enrejado_collision.glb",
+      "miniatura": "valla_enrejado_top.png",
+      "huella": {
+        "ancho": 3.02,
+        "fondo": 0.3,
+        "cx": 0,
+        "cz": 0
+      },
+      "alto": 1.95,
+      "frente": "+z",
+      "puedeRebasar": true,
+      "modular": {
+        "eje": "x",
+        "paso": 3.0
+      }
     }
   ],
   "categorias": [
@@ -580,12 +1012,12 @@
       "nombre": "Edificios"
     },
     {
-      "id": "semaforos",
-      "nombre": "Semáforos"
-    },
-    {
       "id": "complementos",
       "nombre": "Complementos"
+    },
+    {
+      "id": "vehiculos",
+      "nombre": "Vehículos"
     }
   ]
 }

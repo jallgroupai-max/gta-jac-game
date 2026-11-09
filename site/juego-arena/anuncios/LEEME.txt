@@ -1,0 +1,52 @@
+35 ANUNCIOS PARA PANTALLAS DEL VIDEOJUEGO
+
+Cada carpeta contiene 5 propuestas en PNG, con sus medidas exactas:
+  512x276 pixels: 5 anuncios
+  512x176 pixels: 5 anuncios
+  512x165 pixels: 5 anuncios
+  512x155 pixels: 5 anuncios
+  512x107 pixels: 5 anuncios
+  512x128 pixels: 5 anuncios
+  1024x59 pixels: 5 anuncios
+
+Los logos se incorporaron desde las imágenes originales proporcionadas.
+Se alternaron fondos blancos, verdes y diseños mixtos.
+No se utilizaron nombres de edificios o pantallas para elegir los anuncios.
+La carpeta 1024x59 contiene piezas para cinta deslizante; el desplazamiento se programa en el motor del videojuego.
+
+Archivos:
+  512x276/01_agropecuaria_paraguana_512x276.png | Agropecuaria Paraguana
+  512x276/02_agropecuaria_san_marino_512x276.png | Agropecuaria San Marino
+  512x276/03_barquisimeto_suites_512x276.png | Barquisimeto Suites
+  512x276/04_plan_travesia_512x276.png | Plan Travesía
+  512x276/05_calidad_bel_512x276.png | Calidad BEL
+  512x176/01_fundacion_bel_512x176.png | Fundación BEL
+  512x176/02_bel_inmobiliaria_512x176.png | BEL Inmobiliaria
+  512x176/03_agropecuaria_paraguana_512x176.png | Agropecuaria Paraguana
+  512x176/04_bel_industrial_512x176.png | BEL Industrial
+  512x176/05_agropecuaria_san_marino_512x176.png | Agropecuaria San Marino
+  512x165/01_bel_industrial_512x165.png | BEL Industrial
+  512x165/02_bel_inmobiliaria_512x165.png | BEL Inmobiliaria
+  512x165/03_facilito_jac_512x165.png | Facilito JAC
+  512x165/04_fundacion_bel_512x165.png | Fundación BEL
+  512x165/05_barquisimeto_suites_512x165.png | Barquisimeto Suites
+  512x155/01_auto_partes_lara_512x155.png | Auto Partes Lara
+  512x155/02_credi_jac_512x155.png | Credi JAC
+  512x155/03_plan_travesia_512x155.png | Plan Travesía
+  512x155/04_bel_512x155.png | BEL
+  512x155/05_calidad_bel_512x155.png | Calidad BEL
+  512x107/01_bel_512x107.png | BEL
+  512x107/02_bel_industrial_512x107.png | BEL Industrial
+  512x107/03_fundacion_bel_512x107.png | Fundación BEL
+  512x107/04_auto_partes_lara_512x107.png | Auto Partes Lara
+  512x107/05_facilito_jac_512x107.png | Facilito JAC
+  512x128/01_barquisimeto_suites_512x128.png | Barquisimeto Suites
+  512x128/02_fundacion_bel_512x128.png | Fundación BEL
+  512x128/03_agropecuaria_paraguana_512x128.png | Agropecuaria Paraguana
+  512x128/04_agropecuaria_san_marino_512x128.png | Agropecuaria San Marino
+  512x128/05_bel_inmobiliaria_512x128.png | BEL Inmobiliaria
+  1024x59/01_bel_corporativo_1024x59.png | BEL Corporativo
+  1024x59/02_bel_industrial_1024x59.png | BEL Industrial
+  1024x59/03_credi_jac_1024x59.png | Credi JAC
+  1024x59/04_auto_partes_lara_1024x59.png | Auto Partes Lara
+  1024x59/05_plan_travesia_1024x59.png | Plan Travesía

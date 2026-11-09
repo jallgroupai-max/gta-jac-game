@@ -49,6 +49,7 @@ kbd{font:11px ui-monospace,Consolas,monospace;background:#12161c;border:1px soli
 .tool:hover{background:var(--panel2);border-color:var(--line2)}
 .tool.on{background:#173b4a;border-color:var(--accent)}
 .tool.on kbd{color:var(--accent);border-color:var(--accent-d)}
+#vJoin{position:absolute;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
 #stage{grid-area:stage;position:relative;min-width:0;min-height:0;background:#14171c;overflow:hidden}
 #latbar{position:absolute;left:10px;bottom:10px;z-index:4;display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:rgba(26,30,37,.94);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px}
 #latbar[hidden]{display:none}#latbar .lb{color:var(--dim)}#latbar .seg{display:flex}#latbar .seg button{border-radius:0;padding:3px 10px}#latbar .seg button.on,#vCam button.on{background:var(--accent);color:#06222b}
@@ -199,6 +200,7 @@ body.dragging #drop{display:flex}
 
   <main id="stage">
     <canvas id="cv" tabindex="-1"></canvas>
+    <button id="vJoin" class="primary" hidden title="Une los 2 vértices seleccionados (Intro; Alt = sin restricciones)">Unir vértices</button>
     <div id="latbar" hidden>
       <span class="lb">Desde</span><div class="seg" id="latDir"><button data-ld="S" title="Visto desde el Sur">Sur</button><button data-ld="N" title="Visto desde el Norte">Norte</button><button data-ld="E" title="Visto desde el Este">Este</button><button data-ld="O" title="Visto desde el Oeste">Oeste</button></div>
       <button id="latL" title="Girar el área 90° (←)">◀</button><button id="latR" title="Girar el área 90° (→)">▶</button>
@@ -223,7 +225,7 @@ body.dragging #drop{display:flex}
       <label title="Tras colocar un objeto la herramienta vuelve a Seleccionar; con esta casilla (o con Mayús) se conserva para colocar en serie"><input id="vMulti" type="checkbox"> Colocar varios</label>
       <button id="vPerfil" title="Muestra u oculta la vista lateral (perfil de un corte A→B)">Vista lateral</button>
       <label title="Muestra el relieve esculpido: sombreado, colores y curvas de nivel (1 m y 5 m)"><input id="vRel" type="checkbox" checked> Relieve</label>
-      <label title="Ningún elemento rebasa los límites de otro: la capa base (calles, islas y manzanas) no se solapa y los objetos respetan sus reglas. Mantén Alt al arrastrar para omitirlas un momento"><input id="vColl" type="checkbox" checked> Restricciones de colisión</label>
+      <label title="Ningún elemento rebasa los límites de otro: la capa base (calles y manzanas) no se solapa (las islas están exentas) y los objetos respetan sus reglas. Mantén Alt al arrastrar para omitirlas un momento"><input id="vColl" type="checkbox" checked> Restricciones de colisión</label>
       <label title="Postes de alumbrado a lo largo de las calles jugables (campo alumbrado, por defecto desactivado; el editor no los dibuja)"><input id="vFar" type="checkbox"> Alumbrado (postes)</label>
       <label title="Terreno de fondo de todo el mundo (campo terrenoBase)">Fondo <select id="vBase"><option value="mixto">Mixto</option><option value="cesped">Césped</option><option value="tierra">Tierra</option></select></label>
       <button id="b3d" title="Muestra el juego real desde arriba, centrado en la vista actual">Vista 3D real</button>
@@ -369,6 +371,14 @@ function rgbOf(col){   // [r,g,b] de cualquier color CSS (vía canvas)
 }
 const mixCol = (col, k, a) => { const c = rgbOf(col).map(v => Math.round(clamp(k < 1 ? v * k : v + (255 - v) * (k - 1), 0, 255))); return 'rgba(' + c.join(',') + ',' + (a == null ? 1 : a) + ')'; };   // k<1 oscurece, k>1 aclara
 const hexOf = col => '#' + rgbOf(col).map(v => v.toString(16).padStart(2, '0')).join('');
+function setEdColor(e, v){ const co = modelOf(e).colorable; if (!co || !v || !/^#[0-9a-fA-F]{6}$/.test(v) || v.toLowerCase() === String(co.defecto || '#ffffff').toLowerCase()) delete e.color; else e.color = v.toLowerCase(); }   // solo se guarda si ≠ defecto
+const TINT = new Map();
+function tintThumb(id, color){   // miniatura teñida: multiply con el color y se recupera el alfa original (solo se tiñen los píxeles no transparentes)
+  const im = THUMB[id]; if (!im) return null; const key = id + '|' + color + '|' + (im.naturalWidth || im.width); if (TINT.has(key)) return TINT.get(key);
+  const w = im.naturalWidth || im.width, h = im.naturalHeight || im.height, c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+  g.drawImage(im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = color; g.fillRect(0, 0, w, h); g.globalCompositeOperation = 'destination-in'; g.drawImage(im, 0, 0);
+  if (TINT.size > 64) TINT.clear(); TINT.set(key, c); return c;
+}
 function setCercaColor(e, v){ if (!v || hexOf(v) === CERCA_COLOR) delete e.color; else e.color = v; }
 const VER_RE = /^\d+\.\d+\.\d+$/;
 let verMapa = '0.0.0';   // versión actual del mapa (campo `versionMapa`, distinto de `version` = formato); cada exportación a archivo la sube
@@ -407,6 +417,7 @@ function normalize(raw){
   if (typeof m.calzadaAuto !== 'boolean') m.calzadaAuto = true;
   m.alumbrado = m.alumbrado === true;   // el juego solo pone postes con alumbrado:true
   delete m.farolas;                      // campo viejo: se ignora y se elimina (no queda true por herencia)
+  for (const a of m.areas){ if (!AREA_SUP.includes(a.superficie)) a.superficie = 'cesped'; if (a.escala !== undefined){ const n = +a.escala; if (n > 0 && n !== 1 && isFinite(n)) a.escala = n; else delete a.escala; } }   // superficie: mismos tipos que los terrenos (otro valor → cesped); escala (multiplicador) solo si ≠ 1
   for (const g of m.terrenos){ if (!TEXMAP[g.textura]) g.textura = 'cesped'; g.escala = +g.escala > 0 ? +g.escala : 1; if (g.rotacion !== undefined){ const r = isFinite(+g.rotacion) && g.rotacion !== null && g.rotacion !== '' ? normRot(+g.rotacion) : 0; if (r) g.rotacion = r; else delete g.rotacion; } }   // rotacion (°) solo si ≠ 0, normalizada a 0-360
   for (const b of m.bloques){ if (!TEXMAP[b.textura]) b.textura = 'adoquin'; b.escala = +b.escala > 0 ? +b.escala : 1; b.alto = +b.alto > 0 ? +b.alto : 0.3; if (!TEXMAP[b.texturaAcera]) b.texturaAcera = 'adoquin'; b.aceraAncho = +b.aceraAncho > 0 ? Math.min(+b.aceraAncho, 60) : 0; if (b.altoInterior !== undefined) b.altoInterior = +b.altoInterior >= 0 ? +b.altoInterior : b.alto;
     for (const lk of ['aceraLados', 'bordeLados']) if (b[lk] !== undefined){ const a = b[lk]; if (Array.isArray(a) && a.length === b.puntos.length){ b[lk] = a.map(v => v !== false); if (b[lk].every(Boolean)) delete b[lk]; } else delete b[lk]; } }   // un booleano por ARISTA (i = punto i -> i+1); si no coincide con los puntos se descarta; todo true = sin campo
@@ -441,7 +452,9 @@ function normalize(raw){
     if (!b.modelo) b.modelo = (CAT.modelos[0] || FALLBACK_MODELO).id;
     { const mm = CAT.modelos.find(q => q.id === b.modelo), lib = !!(mm && mm.modular && mm.modular.libre);   // modelo desconocido (catálogo sin cargar): se conserva
       if (b.modulos !== undefined){ const n = Math.round(+b.modulos); if (n >= 2 && (!mm || (mm.modular && !lib))) b.modulos = n; else delete b.modulos; }   // `modulos`: solo modelos modulares NO libres; entero >= 1 (el 1 no se guarda)
-      if (b.ancho !== undefined){ const a = +b.ancho; if (a > 0 && (!mm || lib)) b.ancho = mm ? Math.max(mm.modular.anchoMin || 1, a) : a; else delete b.ancho; } }   // `ancho`: solo modelos modular.libre, >= anchoMin
+      if (b.ancho !== undefined){ const a = +b.ancho; if (a > 0 && (!mm || lib)) b.ancho = mm ? Math.max(mm.modular.anchoMin || 1, a) : a; else delete b.ancho; }
+      if (mm && mm.fijo){ delete b.escala; delete b.modulos; delete b.ancho; }   // modelos `fijo:true` (vehículos): no se escalan ni se ensanchan
+      if (b.color !== undefined){ const okc = typeof b.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(b.color); if (okc && (!mm || (mm.colorable && b.color.toLowerCase() !== String(mm.colorable.defecto || '#ffffff').toLowerCase()))) b.color = b.color.toLowerCase(); else delete b.color; } }   // `color` "#rrggbb" solo en modelos `colorable` y si ≠ defecto   // `ancho`: solo modelos modular.libre, >= anchoMin
   }
   m.zonaJugable = normPts(m.zonaJugable);
   m.zonaReservada = normPts(m.zonaReservada);
@@ -865,6 +878,12 @@ function catGrupos(){
   return g;
 } const THUMB = {}; let edifModel = FALLBACK_MODELO.id;
 const modelOf = e => CAT.modelos.find(m => m.id === e.modelo) || CAT.modelos[0] || FALLBACK_MODELO;
+const edGrp = e => { const c = modelOf(e).categoria; return c === 'vehiculos' ? 'vehiculo' : c === 'complementos' ? 'complemento' : 'edificio'; };   // capa y rótulo de un edificio del catálogo según su categoría (todos se guardan en edificios[])
+const kindLabel = it => it.kind === 'edificio' ? ({ edificio:'Edificio', vehiculo:'Vehículo', complemento:'Complemento' })[edGrp(it.el)] : KINDS[it.kind].label;
+const CT = { vehiculo:{ cat:'vehiculos', nombre:'Vehículos', m:'' }, complemento:{ cat:'complementos', nombre:'Complementos', m:'' } };   // herramientas «Vehículo» (D) y «Complemento» (1): solo su categoría; m = modelo activo
+const ctModels = t => CAT.modelos.filter(m => m.categoria === CT[t].cat);
+const hModels = () => CAT.modelos.filter(m => !Object.values(CT).some(c => c.cat === m.categoria));   // herramienta Edificio (H): lo que no tiene herramienta propia (categoría «edificios»)
+const curModelId = () => CT[tool] ? CT[tool].m : edifModel;
 const thumbOk = id => { const im = THUMB[id]; return !!(im && im.complete && im.naturalWidth > 0 && !im.failed); };
 function loadThumb(m, bust){
   if (!m.miniatura || THUMB[m.id]) return;
@@ -881,7 +900,9 @@ async function loadCatalog(silent){
   } catch (err){ if (!silent) toast('No se pudo leer ../modelos/catalogo.json (' + err.message + '): uso el catálogo de respaldo', 'warn'); if (!catText) changed = true; }
   if (!changed) return;
   CAT.modelos.forEach(m => loadThumb(m, !!catText && silent));
-  if (!CAT.modelos.some(m => m.id === edifModel)) edifModel = CAT.modelos[0].id;
+  if (!hModels().some(m => m.id === edifModel)) edifModel = (hModels()[0] || CAT.modelos[0]).id;
+  for (const t in CT) if (!ctModels(t).some(m => m.id === CT[t].m)) CT[t].m = ctModels(t).length ? ctModels(t)[0].id : '';
+  for (const b of M.edificios){ const mm = CAT.modelos.find(x => x.id === b.modelo); if (mm && mm.fijo){ delete b.escala; delete b.modulos; delete b.ancho; } if (b.color !== undefined && !(mm && mm.colorable && /^#[0-9a-fA-F]{6}$/.test(b.color))) delete b.color; }   // el catálogo llegó después que el mapa
   renderToolOpts(); renderProps(); redraw();
 }
 let lastCatCheck = 0;
@@ -896,7 +917,7 @@ function edifRect(e){
 }
 function edifSetCenter(e, C, rumbo, s){   // fija el centro de la huella y recalcula el origen (x,z)
   const h = modelOf(e).huella, th = PI - rumbo * PI / 180, c = Math.cos(th), sn = Math.sin(th), ox = h.cx * s, oz = h.cz * s;
-  e.rumbo = rumbo; e.escala = s; e.x = r2(C[0] - (ox * c + oz * sn)); e.z = r2(C[1] - (-ox * sn + oz * c));
+  e.rumbo = rumbo; if (!(modelOf(e).fijo)) e.escala = s; e.x = r2(C[0] - (ox * c + oz * sn)); e.z = r2(C[1] - (-ox * sn + oz * c));
 }
 const edInfoText = e => { const m = modelOf(e), s = e.escala || 1, Rr = edifRect(e), n = Rr.n; return 'Huella: ' + (Rr.W * s).toFixed(1) + ' × ' + (m.huella.fondo * s).toFixed(1) + ' m · alto ' + (m.alto * s).toFixed(1) + ' m' + (Rr.lib ? ' · ' + n + (n === 1 ? ' copia' : ' copias') + ' (ancho libre, mín. ' + (m.modular.anchoMin || 1) + ' m)' : n > 1 ? ' · ' + n + ' módulos' : (m.modular ? ' · modular (paso ' + (m.modular.paso * s).toFixed(1) + ' m)' : '')); };
 /* radios[i] = radio de la esquina i; se mantiene alineado con puntos al insertar, borrar e invertir. */
@@ -1088,7 +1109,7 @@ function drawArea(e){
   if (e.puntos.length < 2) return;
   const isla = e.alto > 0;
   pathPts(ptsS(e, true), true);
-  ctx.fillStyle = e.superficie === 'concreto' ? '#8d9097' : e.superficie === 'piedras' ? '#c9a96e' : e.superficie === 'piedras_cafe' ? '#8a5a3a' : isla ? '#3d7a38' : '#76b86e'; ctx.fill();
+  ctx.fillStyle = e.superficie === 'concreto' ? '#8d9097' : e.superficie === 'piedras' ? '#c9a96e' : e.superficie === 'piedras_cafe' ? '#8a5a3a' : (e.superficie && e.superficie !== 'cesped' && TEXFLAT[areaTexKey(e)]) ? TEXFLAT[areaTexKey(e)] : isla ? '#3d7a38' : '#76b86e'; ctx.fill();
   ctx.lineJoin = 'round';
   if (isla && e.borde){ ctx.lineWidth = Math.max(2, 0.6 * V.s); ctx.strokeStyle = C.amarillo; }
   else { ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.35)'; }
@@ -1280,7 +1301,7 @@ function handlesOf(it){
     if (it.kind === 'edificio'){
       const R = edifRect(it.el), Lh = Math.max(10, 52 / V.s);
       out.push({ t:'rot', x:R.C[0] + R.front[0] * (R.hd + Lh), z:R.C[1] + R.front[1] * (R.hd + Lh) });
-      R.corners.forEach((q, i) => out.push({ t:'c', i, x:q[0], z:q[1] }));
+      if (!modelOf(it.el).fijo) R.corners.forEach((q, i) => out.push({ t:'c', i, x:q[0], z:q[1] }));   // modelo fijo: sin manijas de escala (solo rotación)
       if (R.paso > 0) out.push({ t:'c', i:4, x:R.C[0] + R.ux[0] * R.hw, z:R.C[1] + R.ux[1] * R.hw }, { t:'c', i:5, x:R.C[0] - R.ux[0] * R.hw, z:R.C[1] - R.ux[1] * R.hw });
       return out;
     }
@@ -1454,10 +1475,10 @@ function drawColFx(){
   ctx.fillStyle = 'rgba(150,20,20,.94)'; ctx.fillRect(bx, by, w, 22); ctx.fillStyle = '#fff'; ctx.fillText(t, bx + 8, by + 11);
 }
 function drawDraft(){
-  drawColFx(); drawRelBrush();
+  drawColFx(); drawRelBrush(); drawVsel(); if (tool === 'recortar' && cropRect) drawCrop();
   if (edgeHover && (tool === 'rampa' || tool === 'escalera' || addEntrada)) drawRampaGhost();
-  if (tool === 'edificio' && mouse.x >= 0 && mouse.x <= W && mouse.y >= 0 && mouse.y <= H){
-    const m = CAT.modelos.find(q => q.id === edifModel) || CAT.modelos[0], R = edifRect({ modelo:m.id, x:mouseW.x - m.huella.cx, z:mouseW.z - m.huella.cz, rumbo:180, escala:1 });
+  if ((tool === 'edificio' || (CT[tool] && CT[tool].m)) && mouse.x >= 0 && mouse.x <= W && mouse.y >= 0 && mouse.y <= H){
+    const m = CAT.modelos.find(q => q.id === curModelId()) || CAT.modelos[0], R = edifRect({ modelo:m.id, x:mouseW.x - m.huella.cx, z:mouseW.z - m.huella.cz, rumbo:180, escala:1 });
     pathPts(R.corners, true); ctx.fillStyle = 'rgba(154,167,184,.22)'; ctx.fill(); ctx.setLineDash([6, 4]); ctx.lineWidth = 1.6; ctx.strokeStyle = C.acento; ctx.stroke(); ctx.setLineDash([]);
     return;
   }
@@ -1685,6 +1706,9 @@ function areaTrees(a){
 }
 const TEXMAP = { cesped:'cesped', tierra:'tierra', asfalto:'asfalto', adoquin:'losa', concreto:'concreto', cemento:'cemAm', piedras:'piedras', piedras_cafe:'piedras_cafe', cesped_isla:'cesped_isla', cesped_parque:'cesped_parque' };
 const TEXNAMES = [['cesped', 'Césped'], ['tierra', 'Tierra'], ['asfalto', 'Asfalto'], ['adoquin', 'Adoquín'], ['concreto', 'Concreto'], ['cemento', 'Cemento amarillo'], ['piedras', 'Piedras claras'], ['piedras_cafe', 'Piedras marrones'], ['cesped_isla', 'Césped de isla'], ['cesped_parque', 'Césped de parque']];
+const AREA_SUP = ['cesped', 'cesped_oscuro', 'tierra', 'asfalto', 'adoquin', 'concreto', 'cemento', 'piedras', 'piedras_cafe', 'cesped_isla', 'cesped_parque'];   // islas y parques: «cesped» = césped claro de isla/parque (def.); «cesped_oscuro» = el césped PBR de los terrenos
+const AREA_TEXNAMES = [['cesped', 'Césped (claro, por defecto)'], ['cesped_oscuro', 'Césped oscuro']].concat(TEXNAMES.filter(t => t[0] !== 'cesped'));
+const areaTexKey = e => e.superficie === 'cesped_oscuro' ? 'cesped' : e.superficie;   // clave de TEXMAP
 const TEXFLAT = { cesped:'#4d7c3a', tierra:'#7a6247', asfalto:'#3b3f46', adoquin:'#cfc2a1', concreto:'#9a9a96', cemento:'#cdac25', piedras:'#c9a96e', piedras_cafe:'#8a5a3a', cesped_isla:'#8fae6e', cesped_parque:'#7fc05a' };
 const calzadaOn = () => !!M.calzadaAuto && M.zonaJugable.length >= 3;
 const skipAsfalto = e => calzadaOn() && !e.extra && !esExterna(e);   // con calzada automática el asfalto de las calles normales es el hueco entre manzanas
@@ -1743,8 +1767,8 @@ function drawTexWorld(of){
     const isla = e.alto > 0;
     polyW(p, true);
     if (isla){ ctx.save(); shadowOn(); ctx.fillStyle = '#000'; ctx.fill(); ctx.restore(); }
-    const supTx = e.superficie === 'concreto' || e.superficie === 'piedras' || e.superficie === 'piedras_cafe' ? e.superficie : 'cesped';
-    ctx.fillStyle = texPat(TEXMAP[supTx] || 'cesped'); ctx.fill();
+    const supTx = AREA_SUP.includes(e.superficie) ? e.superficie : 'cesped';
+    ctx.fillStyle = texPat(TEXMAP[areaTexKey({ superficie:supTx })] || 'cesped', e.escala > 0 ? e.escala : 1); ctx.fill();
     if (supTx === 'cesped'){ ctx.fillStyle = isla ? 'rgba(40,140,34,.52)' : 'rgba(62,180,46,.5)'; ctx.fill(); }
     if (isla && e.borde){ ctx.save(); shadowOn(0.6); ctx.lineWidth = Math.max(0.55, 2 / s); ctx.strokeStyle = texPat('cemAm'); ctx.stroke(); ctx.restore(); }
     else { ctx.lineWidth = Math.max(0.05, 0.8 / s); ctx.strokeStyle = 'rgba(0,0,0,.22)'; ctx.stroke(); }
@@ -1871,7 +1895,7 @@ function drawEdificioBase(e, tex){   // con la transformación de mundo activa
   const R0 = edifRect(e), nm = R0.n, pas = R0.lib ? R0.W / nm : (m.modular ? m.modular.paso : 0), wcp = R0.lib ? pas : h.ancho, WT = R0.lib ? R0.W : h.ancho + (nm - 1) * pas, xa = h.cx - WT / 2, x0 = xa, z0 = h.cz - h.fondo / 2;   // libre: n copias comprimidas/estiradas en X (W/n cada una)
   if (!tex){ ctx.fillStyle = '#8a9099'; ctx.fillRect(x0, z0, WT, h.fondo); if (nm > 1){ ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 0.3; ctx.beginPath(); for (let k = 1; k < nm; k++){ ctx.moveTo(xa + k * pas, z0); ctx.lineTo(xa + k * pas, z0 + h.fondo); } ctx.stroke(); } ctx.restore(); return; }
   ctx.save(); shadowOn(3); ctx.fillStyle = '#000'; ctx.fillRect(x0, z0, WT, h.fondo); ctx.restore();
-  if (thumbOk(m.id)){ ctx.fillStyle = '#5b616b'; ctx.fillRect(x0, z0, WT, h.fondo); for (let k = 0; k < nm; k++) ctx.drawImage(THUMB[m.id], xa + k * pas, z0, wcp, h.fondo); }
+  if (thumbOk(m.id)){ ctx.fillStyle = '#5b616b'; ctx.fillRect(x0, z0, WT, h.fondo); for (let k = 0; k < nm; k++) ctx.drawImage((m.colorable && tintThumb(m.id, e.color || m.colorable.defecto || '#ffffff')) || THUMB[m.id], xa + k * pas, z0, wcp, h.fondo); }   // sin color: teñida con el de defecto (la Aventura es negra; las de defecto blanco no cambian)
   else {   // respaldo: patrón rayado con la inicial del modelo
     ctx.fillStyle = '#7e8794'; ctx.fillRect(x0, z0, h.ancho, h.fondo);
     ctx.save(); ctx.beginPath(); ctx.rect(x0, z0, h.ancho, h.fondo); ctx.clip(); ctx.strokeStyle = 'rgba(255,255,255,.16)'; ctx.lineWidth = 1.2; ctx.beginPath();
@@ -1897,7 +1921,7 @@ function drawZonaJ(i){
 }
 function draw(){
   raf = 0; gv++;
-  if (vista === 'lateral'){ drawLateral(); return; }
+  if (vista === 'lateral'){ const jb = $('#vJoin'); if (jb) jb.hidden = true; drawLateral(); return; }
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   ctx.fillStyle = viewMode === 'tex' ? '#14171c' : ({ cesped:'#1c2a1d', tierra:'#2c261e' }[M.terrenoBase] || '#14171c'); ctx.fillRect(0, 0, W, H);
   ctx.lineCap = 'butt'; ctx.lineJoin = 'round'; ctx.setLineDash([]);
@@ -1943,8 +1967,8 @@ function draw(){
 }
 
 /* ------------------------------------------------- Restricciones de colisión
-   Capa base = calles, áreas (islas/parques) y bloques: no se solapan entre sí (salvo calle↔calle) más de COL_TOL (0,05 m: solo pueden tocarse por el borde)
-   y SOLO ellos se imantan a bordes y vértices ajenos. Los demás elementos son "objetos" con reglas propias (ver conflictsOf).
+   Capa base = calles y bloques: no se solapan entre sí (salvo calle↔calle) más de COL_TOL (0,05 m: solo pueden tocarse por el borde)
+   y SOLO ellos se imantan a bordes y vértices ajenos. Las ISLAS/PARQUES (area) están EXENTAS (pueden ir sobre calles, manzanas y otras islas). Los demás elementos son "objetos" con reglas propias (ver conflictsOf).
    Cada elemento tiene una "forma": sd(x,z) = profundidad con signo (+ dentro, − fuera, en metros), muestras de contorno e interior, caja y anillo (para pintarla). */
 const COL_TOL = 0.05;
 let collOn = true, colFx = null, colTimer = 0;
@@ -2054,6 +2078,7 @@ function conflictsOf(it, cached){
   const base = !!BASE_K[k], sol3 = k === 'edificio' || k === 'maceta' || k === 'cerca', ent = isEntrada(k), pint = k === 'flecha' || k === 'estacionamiento', pairs = SOL_PAIRS[k];   // los cruces peatonales (cruce) están EXENTOS: pueden solaparse con todo
   if (!(base || sol3 || ent || pint || pairs)) return out;
   if (k === 'edificio' && modelOf(it.el).puedeRebasar) return out;   // modelo del catálogo con puedeRebasar:true
+  if (k === 'area') return out;   // las islas y parques están EXENTOS: pueden solaparse con calles, manzanas y otras islas
   if (!cached){ gv++; }
   const S = shapeOf(it, !cached); if (!S) return out;
   const T = COL_TOL, all = items(), calz = calzadaOn();   // con calzada automática el asfalto es la zona menos las manzanas: las franjas de las calles son nominales
@@ -2061,6 +2086,7 @@ function conflictsOf(it, cached){
     if (o.key === it.key) continue;
     const ok = o.kind; let rule = null;
     if (ok === 'edificio' && modelOf(o.el).puedeRebasar) continue;
+    if (base && ok === 'area') continue;   // (ninguna base choca con una isla)
     if (base && BASE_K[ok]){ if (!(k === 'calle' && ok === 'calle') && !(k === 'bloque' && ok === 'bloque') && !(calz && (k === 'calle' || ok === 'calle'))) rule = 'ovl'; }
     else if (sol3 && ok === 'calle'){ if (!calz) rule = 'ovl'; }
     else if (sol3 && (ok === 'bloque' || ok === 'area')) rule = 'in';
@@ -2102,7 +2128,7 @@ function solapesExistentes(){   // pares que ya incumplen una regla (los mapas c
   for (const it of items()){
     for (const c of conflictsOf(it, true)){
       const id = c.key ? [it.key, c.key].sort().join('|') : it.key + '|' + c.id; if (seen.has(id)) continue; seen.add(id);
-      res.push({ a:it.key, b:c.key, key:it.key, msg:KINDS[it.kind].label + ' «' + itemLabel(it) + '»: ' + c.msg });
+      res.push({ a:it.key, b:c.key, key:it.key, msg:kindLabel(it) + ' «' + itemLabel(it) + '»: ' + c.msg });
     }
   }
   return res;
@@ -2952,6 +2978,342 @@ function deleteVertex(it, i){
   if (ptsOf(it).length <= min) return toast('Este elemento necesita al menos ' + min + ' puntos. Bórralo entero con Supr.', 'warn');
   mutate(() => { ptsOf(it).splice(i, 1); vtxDeleted(it.el, i); });
 }
+/* ------------------------------------------------------ Recortar mapa y Tamaño del mapa
+   Operaciones sobre un mapa `m` (se aplican en sitio: para previsualizar se usa una copia). No añaden campos al JSON:
+   recortar = quitar/cortar elementos fuera de un rectángulo; tamaño = «lienzo» (cambia la zona jugable sin mover el contenido) o «escalar» (x' = f·x + t). */
+const cloneMap = m => JSON.parse(JSON.stringify(m));
+const KCOLS = () => Object.keys(KINDS).filter(k => KINDS[k].col);
+function mapRect(m){   // rectángulo del mapa: caja de la zona jugable; si no hay, caja de todos los elementos
+  let a = m.zonaJugable && m.zonaJugable.length >= 3 ? m.zonaJugable.slice() : null;
+  if (!a){ a = []; for (const k of KCOLS()){ const K = KINDS[k]; for (const e of m[K.col] || []){ if (K.geom === 'point') a.push(k === 'edificio' ? edifRect(e).C : [e.x, e.z]); else (e.puntos || []).forEach(p => a.push(p)); } } if (m.zonaReservada) m.zonaReservada.forEach(p => a.push(p)); }
+  if (!a.length) return null;
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const p of a){ x0 = Math.min(x0, p[0]); z0 = Math.min(z0, p[1]); x1 = Math.max(x1, p[0]); z1 = Math.max(z1, p[1]); }
+  return { x0, z0, x1, z1 };
+}
+const inRect = (p, R) => p[0] >= R.x0 - 1e-9 && p[0] <= R.x1 + 1e-9 && p[1] >= R.z0 - 1e-9 && p[1] <= R.z1 + 1e-9;
+function clipSide(pts, ax, lim, ge){   // Sutherland–Hodgman contra un semiplano
+  const out = [], n = pts.length;
+  for (let i = 0; i < n; i++){
+    const a = pts[i], b = pts[(i + 1) % n], ai = ge ? a[ax] >= lim : a[ax] <= lim, bi = ge ? b[ax] >= lim : b[ax] <= lim;
+    if (ai) out.push(a);
+    if (ai !== bi){ const t = (lim - a[ax]) / (b[ax] - a[ax]), p = [0, 0]; p[ax] = lim; p[1 - ax] = a[1 - ax] + t * (b[1 - ax] - a[1 - ax]); out.push(p); }
+  }
+  return out;
+}
+function clipPolyRect(P, R){   // polígono recortado al rectángulo; null si queda vacío o degenerado
+  let q = P.map(p => [p[0], p[1]]);
+  for (const [ax, lim, ge] of [[0, R.x0, true], [0, R.x1, false], [1, R.z0, true], [1, R.z1, false]]){ if (q.length) q = clipSide(q, ax, lim, ge); }
+  q = q.filter((p, i) => { const o = q[(i + q.length - 1) % q.length]; return i === 0 || Math.hypot(p[0] - o[0], p[1] - o[1]) > 1e-6; });
+  if (q.length > 1 && Math.hypot(q[0][0] - q[q.length - 1][0], q[0][1] - q[q.length - 1][1]) <= 1e-6) q.pop();
+  return q.length >= 3 && polyArea(q) > 0.01 ? q : null;
+}
+function clipSegRect(a, b, R){   // Liang–Barsky: [t0, t1] del tramo dentro del rectángulo, o null
+  let t0 = 0, t1 = 1; const dx = b[0] - a[0], dz = b[1] - a[1];
+  for (const [p, q] of [[-dx, a[0] - R.x0], [dx, R.x1 - a[0]], [-dz, a[1] - R.z0], [dz, R.z1 - a[1]]]){
+    if (Math.abs(p) < 1e-12){ if (q < 0) return null; continue; }
+    const r = q / p; if (p < 0){ if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; }
+  }
+  return t1 - t0 > 1e-9 ? [t0, t1] : null;
+}
+function clipLineRect(P, R){   // polilínea → trozos [{ pts, idx:[[vértice, t], …] }] (idx permite interpolar izq/der/radios)
+  const out = []; let cur = null;
+  for (let i = 0; i < P.length - 1; i++){
+    const a = P[i], b = P[i + 1], s = clipSegRect(a, b, R);
+    if (!s){ cur = null; continue; }
+    const [t0, t1] = s, pt = t => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    if (!cur || t0 > 1e-9){ cur = { pts:[pt(t0)], idx:[t0 <= 1e-9 ? [i, 0] : [i, t0]] }; out.push(cur); }
+    cur.pts.push(pt(t1)); cur.idx.push(t1 >= 1 - 1e-9 ? [i + 1, 0] : [i, t1]);
+    if (t1 < 1 - 1e-9) cur = null;
+  }
+  return out.filter(c => c.pts.length >= 2 && lineLen(c.pts, false) > 0.05);
+}
+function semFix(m){   // los grupos de semáforos pierden los miembros que ya no existen; con < 2 se disuelven
+  const ids = new Set((m.edificios || []).map(e => e.id));
+  m.semaforos = (m.semaforos || []).map(g => Object.assign({}, g, { miembros:g.miembros.filter(x => ids.has(x)) })).filter(g => g.miembros.length >= 2);
+}
+function relXform(m, o){   // rejilla de relieve: descarta nodos (keep) y/o los reescala (f) y desplaza (sk,sl nodos enteros)
+  const R = m.relieve; if (!R || !R.chunks) return;
+  const cs = +R.celda > 0 ? +R.celda : 2, tam = (R.tam | 0) > 0 ? R.tam | 0 : 32, f = o.f || 1, sk = o.sk | 0, sl = o.sl | 0, nodes = [];
+  for (const key of Object.keys(R.chunks)){
+    const [ci, cj] = key.split(',').map(Number), a = b64ToArr(R.chunks[key], tam * tam); if (!a) continue;
+    for (let l = 0; l < tam; l++) for (let k = 0; k < tam; k++){
+      const v = a[l * tam + k]; if (!v) continue; const K = ci * tam + k, L = cj * tam + l;
+      if (o.keep && !o.keep(K * cs, L * cs)) continue;
+      nodes.push([K + sk, L + sl, v]);
+    }
+  }
+  const ch = new Map();
+  for (const [K, L, v] of nodes){ const ci = Math.floor(K / tam), cj = Math.floor(L / tam), key = ci + ',' + cj; let a = ch.get(key); if (!a){ a = new Float32Array(tam * tam); ch.set(key, a); } a[(L - cj * tam) * tam + (K - ci * tam)] = v; }
+  R.chunks = {}; for (const [key, a] of ch) R.chunks[key] = arrToB64(a);
+  R.celda = r4(cs * f);
+  if (!Object.keys(R.chunks).length) delete m.relieve;
+}
+function mapClip(m, R){   // deja SOLO lo que cae dentro del rectángulo R; devuelve el resumen { removed, clipped, kept, notes }
+  const res = { removed:{}, clipped:{}, kept:0, notes:[] }, add = (o, k) => { o[k] = (o[k] || 0) + 1; };
+  for (const k of KCOLS()){
+    const K = KINDS[k], out = [], used = new Set((m[K.col] || []).map(q => q.id));
+    const newId = () => { let n = 0; for (const id of used){ const q = /^(\D+)(\d+)$/.exec(id); if (q && q[1] === K.pref) n = Math.max(n, +q[2]); } const id = K.pref + (n + 1); used.add(id); return id; };
+    for (const e of m[K.col] || []){
+      if (K.geom === 'point'){
+        const c = k === 'edificio' ? edifRect(e).C : [e.x, e.z];
+        if (inRect(c, R)){ out.push(e); res.kept++; } else add(res.removed, k);   // modelos y objetos puntuales: se conservan si su centro queda dentro
+      } else if (K.geom === 'poly'){
+        const P = e.puntos || [];
+        if (P.length >= 3 && P.every(p => inRect(p, R))){ out.push(e); res.kept++; continue; }
+        const Q = P.length >= 3 ? clipPolyRect(P, R) : null;
+        if (!Q){ add(res.removed, k); continue; }
+        e.puntos = Q.map(p => [r2(p[0]), r2(p[1])]); delete e.radios; delete e.aceraLados; delete e.bordeLados;   // los arrays por vértice/arista ya no corresponden
+        out.push(e); add(res.clipped, k);
+      } else {   // línea
+        const P = e.puntos || [];
+        if (P.length >= 2 && P.every(p => inRect(p, R))){ out.push(e); res.kept++; continue; }
+        const pieces = P.length >= 2 ? clipLineRect(P, R) : [];
+        if (!pieces.length){ add(res.removed, k); continue; }
+        add(res.clipped, k);
+        const src = JSON.parse(JSON.stringify(e));
+        pieces.forEach((pc, n) => {
+          const o = n === 0 ? e : JSON.parse(JSON.stringify(src));
+          if (n > 0){ o.id = newId(); if (o.nombre) o.nombre = o.nombre + ' (' + (n + 1) + ')'; }
+          o.puntos = pc.pts.map(p => [r2(p[0]), r2(p[1])]);
+          for (const ak of ['izq', 'der', 'radios']){
+            if (!Array.isArray(src[ak])) continue; const dv = ak === 'radios' ? 0 : (src.ancho || 0) / 2, g = i => src[ak][i] !== undefined ? src[ak][i] : dv;
+            o[ak] = pc.idx.map(([i, t]) => t === 0 ? g(i) : ak === 'radios' ? 0 : r2(g(i) + (g(i + 1) - g(i)) * t));
+            if (ak === 'radios' && !o[ak].some(x => x > 0)) delete o[ak];
+          }
+          out.push(o);
+        });
+        if (pieces.length > 1) res.notes.push(KINDS[k].label + ' «' + (src.nombre || src.id) + '» se partió en ' + pieces.length + ' trozos');
+      }
+    }
+    m[K.col] = out;
+  }
+  semFix(m);
+  const zc = (key, label, fallback) => {
+    const P = m[key]; if (!P || P.length < 3) return;
+    if (P.every(p => inRect(p, R))) return;
+    const Q = clipPolyRect(P, R); m[key] = Q ? Q.map(p => [r2(p[0]), r2(p[1])]) : fallback();
+    res.notes.push(label + (Q ? ' recortada al rectángulo' : (key === 'zonaJugable' ? ' quedaba fuera: ahora es el rectángulo completo' : ' quedaba fuera: se quitó')));
+  };
+  zc('zonaJugable', 'La zona jugable', () => [[R.x0, R.z0], [R.x1, R.z0], [R.x1, R.z1], [R.x0, R.z1]].map(p => [r2(p[0]), r2(p[1])]));
+  zc('zonaReservada', 'La zona reservada', () => []);
+  if (m.spawn && !inRect([m.spawn.x, m.spawn.z], R)){
+    m.spawn.x = r2(clamp(m.spawn.x, R.x0, R.x1)); m.spawn.z = r2(clamp(m.spawn.z, R.z0, R.z1));
+    res.notes.push('El spawn quedaba fuera: se movió al punto más cercano dentro (' + m.spawn.x + ', ' + m.spawn.z + '). Revísalo.');
+  }
+  relXform(m, { keep:(x, z) => x >= R.x0 - 1e-9 && x <= R.x1 + 1e-9 && z >= R.z0 - 1e-9 && z <= R.z1 + 1e-9 });
+  return res;
+}
+const SC_DIMS = { calle:['ancho', 'separador'], separador:['ancho'], bloque:['aceraAncho'], maceta:['largo', 'ancho'], estacionamiento:['ancho', 'alto', 'paso'], rampa:['ancho', 'largo', 'radio'], escalera:['ancho', 'largo'], flecha:['largo', 'paso'], cruce:['largo', 'ancho'], barrera:['ancho'] };
+function mapScale(m, f, P){   // escala posiciones y dimensiones HORIZONTALES por f alrededor del punto P (las alturas y los grosores de pintura no cambian)
+  const tx = P[0] * (1 - f), tz = P[1] * (1 - f), A = p => [r2(f * p[0] + tx), r2(f * p[1] + tz)];
+  for (const k of KCOLS()){
+    const K = KINDS[k];
+    for (const e of m[K.col] || []){
+      if (K.geom === 'point'){
+        if (k === 'edificio'){
+          const fijo = (CAT.modelos.find(x => x.id === e.modelo) || {}).fijo, C = edifRect(e).C, Cn = A(C);
+          if (fijo){ e.x = r2(e.x + Cn[0] - C[0]); e.z = r2(e.z + Cn[1] - C[1]); }   // los modelos fijos no cambian de tamaño: solo se mueve su centro
+          else { const o = A([e.x, e.z]); e.x = o[0]; e.z = o[1]; e.escala = r4((e.escala > 0 ? e.escala : 1) * f); }
+        } else { const o = A([e.x, e.z]); e.x = o[0]; e.z = o[1]; }
+      } else e.puntos = (e.puntos || []).map(A);
+      for (const d of SC_DIMS[k] || []) if (typeof e[d] === 'number') e[d] = r2(e[d] * f);
+      for (const ak of ['izq', 'der', 'radios']) if (Array.isArray(e[ak])) e[ak] = e[ak].map(v => r2(v * f));
+    }
+  }
+  for (const key of ['zonaJugable', 'zonaReservada']) if (Array.isArray(m[key])) m[key] = m[key].map(A);
+  if (m.spawn){ const o = A([m.spawn.x, m.spawn.z]); m.spawn.x = o[0]; m.spawn.z = o[1]; }
+  if (m.relieve){ const cs = +m.relieve.celda > 0 ? +m.relieve.celda : 2, c2 = cs * f; relXform(m, { f, sk:Math.round(tx / c2), sl:Math.round(tz / c2) }); }   // el desplazamiento se redondea a celdas enteras de la rejilla
+}
+function sizeRects(R0, st){   // rectángulo nuevo según tamaño y ancla (ax, az ∈ {0, .5, 1})
+  const W0 = R0.x1 - R0.x0, L0 = R0.z1 - R0.z0, W = st.modo === 'escala' ? W0 * st.f : st.w, L = st.modo === 'escala' ? L0 * st.f : st.l, x0 = R0.x0 + st.ax * (W0 - W), z0 = R0.z0 + st.az * (L0 - L);
+  return { x0, z0, x1:x0 + W, z1:z0 + L };
+}
+function applySize(m, st){   // aplica en sitio; devuelve { res, rect, err }
+  const R0 = mapRect(m); if (!R0) return { err:'El mapa está vacío' };
+  if (st.modo === 'escala'){
+    if (!(st.f > 0.01 && st.f < 100)) return { err:'Factor no válido (0,01 a 100)' };
+    const P = [R0.x0 + st.ax * (R0.x1 - R0.x0), R0.z0 + st.az * (R0.z1 - R0.z0)]; mapScale(m, st.f, P); return { res:null, rect:mapRect(m) };
+  }
+  if (!(st.w >= 1 && st.l >= 1 && st.w <= 20000 && st.l <= 20000)) return { err:'Ancho y largo deben estar entre 1 y 20000 m' };
+  const N = sizeRects(R0, st), hadZone = m.zonaJugable && m.zonaJugable.length >= 3, eps = 1e-3;
+  const snap = P => P.map(p => [Math.abs(p[0] - R0.x0) < eps ? N.x0 : Math.abs(p[0] - R0.x1) < eps ? N.x1 : p[0], Math.abs(p[1] - R0.z0) < eps ? N.z0 : Math.abs(p[1] - R0.z1) < eps ? N.z1 : p[1]]);
+  if (hadZone){ m.zonaJugable = snap(m.zonaJugable).map(p => [r2(p[0]), r2(p[1])]); for (const t of m.terrenos || []) if (t.puntos.some(p => Math.abs(p[0] - R0.x0) < eps || Math.abs(p[0] - R0.x1) < eps || Math.abs(p[1] - R0.z0) < eps || Math.abs(p[1] - R0.z1) < eps)){ t.puntos = snap(t.puntos).map(p => [r2(p[0]), r2(p[1])]); delete t.radios; } }   // los vértices sobre el borde viejo se mueven al nuevo
+  else m.zonaJugable = [[N.x0, N.z0], [N.x1, N.z0], [N.x1, N.z1], [N.x0, N.z1]].map(p => [r2(p[0]), r2(p[1])]);
+  const shrink = N.x0 > R0.x0 + eps || N.x1 < R0.x1 - eps || N.z0 > R0.z0 + eps || N.z1 < R0.z1 - eps;
+  const res = shrink ? mapClip(m, N) : { removed:{}, clipped:{}, kept:0, notes:[] };
+  if (!hadZone) res.notes.push('El mapa no tenía zona jugable: se creó con el nuevo tamaño');
+  return { res, rect:N };
+}
+function resSummary(res){   // texto HTML del resumen de un recorte
+  if (!res) return '';
+  const part = o => Object.keys(o).map(k => '<b>' + o[k] + '</b> ' + KINDS[k].plural.toLowerCase()).join(', ');
+  const nr = Object.values(res.removed).reduce((a, b) => a + b, 0), nc = Object.values(res.clipped).reduce((a, b) => a + b, 0);
+  let h = '<ul style="margin:6px 0 0 18px;padding:0;line-height:1.5">';
+  h += '<li>' + (nr ? 'Se eliminan ' + nr + ' elementos: ' + part(res.removed) : 'No se elimina ningún elemento') + '</li>';
+  h += '<li>' + (nc ? 'Se recortan ' + nc + ' (polígonos y líneas que cruzan el borde): ' + part(res.clipped) : 'No se recorta ninguno') + '</li>';
+  h += '<li>Se conservan intactos ' + res.kept + '</li>';
+  res.notes.forEach(n => { h += '<li style="color:var(--warn)">' + esc(n) + '</li>'; });
+  return h + '</ul>';
+}
+/* ---- herramienta «Recortar mapa» (2) */
+let cropRect = null;   // {x0, z0, x1, z1} en m
+const cropNorm = R => ({ x0:Math.min(R.x0, R.x1), z0:Math.min(R.z0, R.z1), x1:Math.max(R.x0, R.x1), z1:Math.max(R.z0, R.z1) });
+function cropHandles(){
+  const R = cropNorm(cropRect), mx = (R.x0 + R.x1) / 2, mz = (R.z0 + R.z1) / 2;
+  return [['nw', R.x0, R.z0], ['n', mx, R.z0], ['ne', R.x1, R.z0], ['e', R.x1, mz], ['se', R.x1, R.z1], ['s', mx, R.z1], ['sw', R.x0, R.z1], ['w', R.x0, mz]];
+}
+function cropDown(e, w, p){
+  const q = snapPt(w.x, w.z, e, null), pt = [r2(q[0]), r2(q[1])];
+  if (cropRect){
+    for (const [id, x, z] of cropHandles()){ const [sx, sy] = w2s(x, z); if (Math.hypot(sx - p.x, sy - p.y) <= 10){ cropRect = cropNorm(cropRect); drag = { t:'crop', mode:id }; return; } }
+    const R = cropNorm(cropRect); if (w.x >= R.x0 && w.x <= R.x1 && w.z >= R.z0 && w.z <= R.z1){ drag = { t:'crop', mode:'move', wx:w.x, wz:w.z, o:R }; return; }
+  }
+  cropRect = { x0:pt[0], z0:pt[1], x1:pt[0], z1:pt[1] }; drag = { t:'crop', mode:'new', A:pt }; redraw();
+}
+function cropMove(e, w){
+  const d = drag, q = snapPt(w.x, w.z, e, null), x = r2(q[0]), z = r2(q[1]);
+  if (d.mode === 'new'){ cropRect = { x0:d.A[0], z0:d.A[1], x1:x, z1:z }; }
+  else if (d.mode === 'move'){ const dx = r2(w.x - d.wx), dz = r2(w.z - d.wz); cropRect = { x0:d.o.x0 + dx, z0:d.o.z0 + dz, x1:d.o.x1 + dx, z1:d.o.z1 + dz }; }
+  else { const R = cropRect; if (d.mode.includes('w')) R.x0 = x; if (d.mode.includes('e')) R.x1 = x; if (d.mode.includes('n')) R.z0 = z; if (d.mode.includes('s')) R.z1 = z; }
+  cropSync(); redraw();
+}
+function cropSync(){ const R = cropRect && cropNorm(cropRect); if (!R) return; for (const [id, v] of [['cropX', R.x0], ['cropZ', R.z0], ['cropW', R.x1 - R.x0], ['cropL', R.z1 - R.z0]]){ const i = $('#' + id); if (i && document.activeElement !== i) i.value = r2(v); } }
+function cropHTML(){
+  const R = cropRect && cropNorm(cropRect), fld = (id, label, v) => '<label class="f"><span>' + label + '</span><input type="number" id="' + id + '" step="1" value="' + r2(v) + '"></label>';
+  return '<div class="phead"><span class="tag" style="background:#ffd54a"></span><b>Recortar mapa</b></div><div class="hint" style="margin:0 0 8px">Arrastra sobre el lienzo para dibujar el rectángulo; usa las asas para ajustarlo o arrástralo desde dentro. Al aplicar, lo que queda fuera se elimina y lo que cruza el borde se recorta.</div>' +
+    (R ? fld('cropX', 'X mín (m)', R.x0) + fld('cropZ', 'Z mín (m)', R.z0) + fld('cropW', 'Ancho (m)', R.x1 - R.x0) + fld('cropL', 'Largo (m)', R.z1 - R.z0) : '<div class="pinfo">Sin rectángulo todavía.</div>') +
+    '<div class="acts" style="margin-top:8px"><button id="cropZona" title="Rectángulo = caja de la zona jugable actual">Zona jugable</button><button id="cropGo" class="primary"' + (R && R.x1 - R.x0 >= 1 && R.z1 - R.z0 >= 1 ? '' : ' disabled') + ' title="Muestra un resumen y pide confirmación (Intro)">Aplicar recorte…</button><button id="cropNo">Cancelar</button></div>';
+}
+function drawCrop(){
+  const R = cropNorm(cropRect), [x0, y0] = w2s(R.x0, R.z0), [x1, y1] = w2s(R.x1, R.z1);
+  ctx.save(); ctx.fillStyle = 'rgba(8,10,14,.55)'; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.rect(x0, y0, x1 - x0, y1 - y0); ctx.fill('evenodd');
+  ctx.setLineDash([8, 5]); ctx.lineWidth = 2; ctx.strokeStyle = '#ffd54a'; ctx.strokeRect(x0, y0, x1 - x0, y1 - y0); ctx.setLineDash([]);
+  for (const [, x, z] of cropHandles()){ const [sx, sy] = w2s(x, z); ctx.fillStyle = '#ffd54a'; ctx.fillRect(sx - 5, sy - 5, 10, 10); ctx.strokeStyle = '#222'; ctx.lineWidth = 1; ctx.strokeRect(sx - 5, sy - 5, 10, 10); }
+  ctx.font = '12px system-ui'; ctx.fillStyle = '#ffd54a'; ctx.textBaseline = 'bottom'; ctx.textAlign = 'left'; ctx.fillText(r2(R.x1 - R.x0) + ' × ' + r2(R.z1 - R.z0) + ' m', Math.max(4, x0 + 4), Math.max(14, y0 - 4));
+  ctx.restore();
+}
+function confirmCrop(){
+  if (!cropRect) return toast('Dibuja primero el rectángulo', 'warn');
+  const R = cropNorm(cropRect); if (R.x1 - R.x0 < 1 || R.z1 - R.z0 < 1) return toast('El rectángulo es demasiado pequeño', 'warn');
+  const res = mapClip(cloneMap(M), R);
+  showModal('Recortar mapa', '<p>El mapa quedará limitado a <b>' + r2(R.x1 - R.x0) + ' × ' + r2(R.z1 - R.z0) + ' m</b> (X ' + r2(R.x0) + ' … ' + r2(R.x1) + ', Z ' + r2(R.z0) + ' … ' + r2(R.z1) + ').</p>' + resSummary(res) + '<p class="hint">Un solo paso de deshacer (Ctrl+Z) lo revierte.</p>',
+    [{ label:'Cancelar' }, { label:'Aplicar recorte', cls:'primary', fn:() => { mutate(() => { mapClip(M, R); }); sel = null; cropRect = null; setTool('sel'); renderLayers(); renderProps(); fitAll(); toast('Mapa recortado', 'ok'); } }]);
+}
+/* ---- «Tamaño del mapa» (3): diálogo con vista previa */
+function miniPreview(cv, m, R0, N){
+  const g = cv.getContext('2d'), Wc = cv.width, Hc = cv.height; g.clearRect(0, 0, Wc, Hc); g.fillStyle = '#14171c'; g.fillRect(0, 0, Wc, Hc);
+  const rr = mapRect(m) || N, U = { x0:Math.min(R0.x0, N.x0, rr.x0), z0:Math.min(R0.z0, N.z0, rr.z0), x1:Math.max(R0.x1, N.x1, rr.x1), z1:Math.max(R0.z1, N.z1, rr.z1) };
+  const s = Math.min((Wc - 16) / Math.max(1, U.x1 - U.x0), (Hc - 16) / Math.max(1, U.z1 - U.z0)), ox = (Wc - s * (U.x1 - U.x0)) / 2 - s * U.x0, oz = (Hc - s * (U.z1 - U.z0)) / 2 - s * U.z0, T = p => [p[0] * s + ox, p[1] * s + oz];
+  const path = (P, close) => { g.beginPath(); P.forEach((p, i) => { const q = T(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); if (close) g.closePath(); };
+  g.setLineDash([5, 4]); g.strokeStyle = '#6b7380'; g.lineWidth = 1; const a = T([R0.x0, R0.z0]), b = T([R0.x1, R0.z1]); g.strokeRect(a[0], a[1], b[0] - a[0], b[1] - a[1]); g.setLineDash([]);
+  for (const k of KCOLS()){
+    const K = KINDS[k]; g.strokeStyle = K.color; g.fillStyle = K.color; g.lineWidth = k === 'calle' ? 2 : 1;
+    for (const e of m[K.col] || []){
+      if (K.geom === 'point'){ const q = T(k === 'edificio' ? edifRect(e).C : [e.x, e.z]); g.fillRect(q[0] - 1.5, q[1] - 1.5, 3, 3); }
+      else if (e.puntos && e.puntos.length >= 2){ path(e.puntos, K.geom === 'poly'); g.globalAlpha = K.geom === 'poly' ? 0.35 : 1; if (K.geom === 'poly') g.fill(); g.globalAlpha = 1; g.stroke(); }
+    }
+  }
+  if (m.zonaJugable && m.zonaJugable.length >= 3){ g.setLineDash([4, 3]); g.strokeStyle = '#ff5fa8'; g.lineWidth = 1.5; path(m.zonaJugable, true); g.stroke(); g.setLineDash([]); }
+  g.strokeStyle = '#ffd54a'; g.lineWidth = 2; const c = T([N.x0, N.z0]), d = T([N.x1, N.z1]); g.strokeRect(c[0], c[1], d[0] - c[0], d[1] - c[1]);
+  if (m.spawn){ const q = T([m.spawn.x, m.spawn.z]); g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 3, 0, PI * 2); g.fill(); }
+}
+function openSizeDialog(){
+  const R0 = mapRect(M); if (!R0) return toast('El mapa está vacío: dibuja algo o define la zona jugable primero', 'warn');
+  const W0 = r2(R0.x1 - R0.x0), L0 = r2(R0.z1 - R0.z0), st = { modo:'lienzo', w:W0, l:L0, f:1, ax:0.5, az:0.5 };
+  const anc = [[0, 0, 'NO'], [0.5, 0, 'N'], [1, 0, 'NE'], [0, 0.5, 'O'], [0.5, 0.5, 'Centro'], [1, 0.5, 'E'], [0, 1, 'SO'], [0.5, 1, 'S'], [1, 1, 'SE']];
+  const body = '<div class="szd"><p style="margin:0 0 8px">Tamaño actual: <b>' + W0 + ' × ' + L0 + ' m</b> ' + (M.zonaJugable && M.zonaJugable.length >= 3 ? '(zona jugable)' : '(caja de todo el contenido; no hay zona jugable)') + '</p>' +
+    '<div class="acts" style="margin:0 0 8px"><label><input type="radio" name="szm" value="lienzo" checked> Cambiar lienzo</label><label><input type="radio" name="szm" value="escala"> Escalar contenido</label></div>' +
+    '<div id="szCan"><label class="f"><span>Nuevo ancho (m)</span><input type="number" id="szW" min="1" step="1" value="' + W0 + '"></label><label class="f"><span>Nuevo largo (m)</span><input type="number" id="szL" min="1" step="1" value="' + L0 + '"></label>' +
+    '<div class="hint">Agranda o achica la zona jugable (y los terrenos que llegan a su borde) sin mover el contenido. Al achicar se recorta como en «Recortar mapa».</div></div>' +
+    '<div id="szEsc" hidden><label class="f"><span>Factor</span><input type="number" id="szF" min="0.01" max="100" step="0.1" value="1"></label><div class="acts" style="margin:0 0 6px"><button type="button" data-f="0.5">×0,5</button><button type="button" data-f="2">×2</button><button type="button" data-f="0.25">×0,25</button><button type="button" data-f="4">×4</button></div><div id="szRes" class="pinfo"></div>' +
+    '<div class="hint">Escala posiciones y dimensiones horizontales (anchos de calle, radios, aceras, huellas). Las alturas y los grosores de pintura no cambian; los modelos «fijos» (vehículos…) conservan su tamaño y solo se mueven.</div></div>' +
+    '<div style="margin:8px 0 4px">Ancla (punto que no se mueve)</div><div id="szAnc" style="display:grid;grid-template-columns:repeat(3,auto);gap:4px;width:max-content">' + anc.map(a => '<button type="button" data-anc="' + a[0] + ',' + a[1] + '" style="min-width:58px" title="' + a[2] + '">' + a[2] + '</button>').join('') + '</div>' +
+    '<canvas id="szPrev" width="400" height="230" style="display:block;margin:10px 0 6px;width:100%;max-width:400px;border:1px solid var(--line2);border-radius:6px"></canvas><div id="szSum"></div></div>';
+  showModal('Tamaño del mapa', body, [{ label:'Cancelar' }, { label:'Aplicar', cls:'primary', fn:() => { const chk = applySize(cloneMap(M), st); if (chk.err) return toast(chk.err, 'warn'); mutate(() => { applySize(M, st); }); sel = null; renderLayers(); renderProps(); fitAll(); toast('Tamaño del mapa cambiado', 'ok'); } }]);
+  const mb = $('#mBody'), apply = () => $('#mFoot button.primary');
+  const refresh = () => {
+    $('#szCan').hidden = st.modo !== 'lienzo'; $('#szEsc').hidden = st.modo !== 'escala';
+    mb.querySelectorAll('[data-anc]').forEach(b => { const [x, z] = b.dataset.anc.split(',').map(Number); b.classList.toggle('primary', x === st.ax && z === st.az); });
+    const m2 = cloneMap(M), o = applySize(m2, st), N = o.err ? R0 : o.rect, nr = sizeRects(R0, st);
+    miniPreview($('#szPrev'), m2, R0, o.err ? R0 : nr);
+    if (st.modo === 'escala') $('#szRes').textContent = o.err ? o.err : 'Resultado: ' + r2((R0.x1 - R0.x0) * st.f) + ' × ' + r2((R0.z1 - R0.z0) * st.f) + ' m';
+    const same = st.modo === 'lienzo' ? Math.abs(st.w - W0) < 1e-6 && Math.abs(st.l - L0) < 1e-6 : Math.abs(st.f - 1) < 1e-9;
+    $('#szSum').innerHTML = o.err ? '<span style="color:var(--warn)">' + esc(o.err) + '</span>' : same ? '<span class="hint">Sin cambios.</span>' : (o.res && (Object.keys(o.res.removed).length || Object.keys(o.res.clipped).length || o.res.notes.length) ? resSummary(o.res) : '<span class="hint">No se recorta ni se elimina nada.</span>');
+    const b = apply(); if (b) b.disabled = !!o.err || same;
+  };
+  mb.addEventListener('input', e => { const t = e.target; if (t.id === 'szW') st.w = +t.value; else if (t.id === 'szL') st.l = +t.value; else if (t.id === 'szF') st.f = +t.value; else return; refresh(); });
+  mb.addEventListener('change', e => { if (e.target.name === 'szm'){ st.modo = e.target.value; refresh(); } });
+  mb.addEventListener('click', e => { const a = e.target.closest('[data-anc]'); if (a){ [st.ax, st.az] = a.dataset.anc.split(',').map(Number); refresh(); return; } const f = e.target.closest('[data-f]'); if (f){ st.f = +f.dataset.f; $('#szF').value = st.f; refresh(); } });
+  refresh();
+}
+/* ---- Selección de vértices (Mayús+clic en su círculo; hasta 2, incluso de elementos distintos) y «Unir vértices» */
+let vsel = [];   // [{key, i}] en orden de selección (un tercero reemplaza al más antiguo)
+const vselClean = () => (vsel = vsel.filter(v => { const it = items().find(q => q.key === v.key); return it && geomOf(it) !== 'point' && v.i < ptsOf(it).length; }));
+function hitVertexAny(p){   // vértice visible y desbloqueado más cercano al puntero (≤ 11 px) de cualquier elemento con vértices
+  let best = null, bd = 11;
+  for (const it of items()){
+    if (geomOf(it) === 'point' || hidden.has(it.key) || locked.has(it.key)) continue;
+    ptsOf(it).forEach((q, i) => { const [x, y] = w2s(q[0], q[1]), d = Math.hypot(x - p.x, y - p.y); if (d <= bd){ bd = d; best = { key:it.key, i }; } });
+  }
+  return best;
+}
+function vselToggle(v){
+  const k = vsel.findIndex(q => q.key === v.key && q.i === v.i);
+  if (k >= 0){ vsel.splice(k, 1); if (selV && selV.key === v.key && selV.i === v.i) selV = null; }
+  else { vsel.push(v); if (vsel.length > 2) vsel.shift(); if (v.key === sel) selV = { key:v.key, i:v.i }; }
+  renderProps(); redraw();
+}
+function vselHTML(){
+  const L = vselClean(); if (!L.length) return '';
+  return L.length === 2 ? '<div class="acts" style="margin:0 0 8px"><button id="pJoinV" class="primary" title="Une los 2 vértices seleccionados (Intro; Alt = sin restricciones)">Unir vértices</button><button id="pVClr" title="Quitar la selección de vértices (Esc)">Quitar selección</button></div>'
+    : '<div class="hint" style="margin:0 0 8px">1 vértice seleccionado (1). Mayús+clic en otro círculo, aunque sea de otro elemento, para habilitar «Unir vértices».</div>';
+}
+function joinVerts(alt){
+  const L = vselClean(); if (L.length < 2) return toast('Selecciona 2 vértices con Mayús+clic en sus círculos', 'warn');
+  const [A, B] = L, its = [A, B].map(v => items().find(q => q.key === v.key)), pA = ptsOf(its[0])[A.i], pB = ptsOf(its[1])[B.i];
+  const mid = [r2((pA[0] + pB[0]) / 2), r2((pA[1] + pB[1]) / 2)], same = A.key === B.key;
+  let fn = null, ok = '';
+  if (same){
+    const it = its[0], n = ptsOf(it).length, closed = geomOf(it) === 'poly', lo = Math.min(A.i, B.i), hi = Math.max(A.i, B.i), min = KINDS[it.kind].min || 2;
+    const adj = hi - lo === 1 || (closed && lo === 0 && hi === n - 1);
+    if (adj){
+      if (n - 1 < min) return toast('Este elemento necesita al menos ' + min + ' puntos: no se pueden fundir esos dos vértices', 'warn');
+      fn = () => {
+        const Q = ptsOf(it); Q[lo] = mid.slice(); Q.splice(hi, 1); vtxDeleted(it.el, hi);   // misma lógica que borrar un vértice (aceraLados, bordeLados, radios)
+        let m = lo; for (const d of [1, -1]){ let j = m + d; if (closed) j = (j + Q.length) % Q.length; if (j < 0 || j >= Q.length || j === m) continue; if (Q.length > min && Math.hypot(Q[j][0] - Q[m][0], Q[j][1] - Q[m][1]) < 0.005){ Q.splice(j, 1); vtxDeleted(it.el, j); if (j < m) m--; } }   // sin vértices duplicados
+      };
+      ok = 'Vértices fundidos en el punto medio';
+    } else if (!closed && lo === 0 && hi === n - 1){   // extremos de una polilínea abierta: ningún tipo de línea se cierra solo, se sueldan en un punto
+      fn = () => { const Q = ptsOf(it); Q[0] = mid.slice(); Q[n - 1] = mid.slice(); };
+      ok = 'Extremos unidos en un mismo punto (las polilíneas no se cierran solas)';
+    } else return toast('Esos vértices no son contiguos: no se pueden unir. Inserta un vértice (doble clic en el segmento) o borra los intermedios', 'warn');
+  } else {
+    if (pA[0] === pB[0] && pA[1] === pB[1]) return toast('Los dos vértices ya coinciden', 'ok');
+    fn = () => { ptsOf(its[0])[A.i] = mid.slice(); ptsOf(its[1])[B.i] = mid.slice(); };
+    ok = 'Vértices soldados en el mismo punto (los elementos siguen separados)';
+  }
+  const keys = [...new Set([A.key, B.key])], ign = new Set(), chk = on => { const bad = []; for (const k of keys){ const q = items().find(x => x.key === k); if (q) for (const c of conflictsOf(q)) (on ? ign.add(k + '|' + c.id) : (ign.has(k + '|' + c.id) || bad.push(c))); } return bad; };
+  if (collOn && !alt) chk(true);
+  mutate(fn);
+  if (collOn && !alt){ shpV++; const bad = chk(false); if (bad.length){ restore(undoS.pop()); shpV++; toast('No se pueden unir: ' + bad[0].msg + ' (Alt = sin restricciones)', 'warn'); return; } }
+  vsel = []; selV = null; if (same && sel !== A.key) sel = A.key;
+  renderLayers(); renderProps(); redraw(); toast(ok, 'ok');
+}
+function drawVsel(){
+  const L = vselClean(), bt = $('#vJoin'); if (bt) bt.hidden = L.length < 2 || vista === 'lateral';
+  if (!L.length) return;
+  ctx.save(); ctx.font = 'bold 11px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  let last = null;
+  L.forEach((v, k) => {
+    const it = items().find(q => q.key === v.key), q = ptsOf(it)[v.i], [x, y] = w2s(q[0], q[1]); last = [x, y];
+    ctx.beginPath(); ctx.arc(x, y, 11, 0, PI * 2); ctx.fillStyle = 'rgba(255,255,255,.2)'; ctx.fill(); ctx.lineWidth = 2.5; ctx.strokeStyle = '#fff'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, 14, 0, PI * 2); ctx.lineWidth = 1.5; ctx.strokeStyle = '#ffd54a'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x + 15, y - 15, 8, 0, PI * 2); ctx.fillStyle = '#ffd54a'; ctx.fill(); ctx.fillStyle = '#222'; ctx.fillText(String(k + 1), x + 15, y - 15);
+  });
+  ctx.restore();
+  if (bt && !bt.hidden && last){ bt.style.left = Math.min(Math.max(8, last[0] + 22), W - bt.offsetWidth - 8) + 'px'; bt.style.top = Math.min(Math.max(52, last[1] + 18), H - 40) + 'px'; }
+}
 function duplicate(){
   const it = selItem(); if (!it) return toast('Selecciona un elemento para duplicar');
   if (KINDS[it.kind].single) return toast('Las zonas y el spawn son únicos: no se pueden duplicar', 'warn');
@@ -2987,10 +3349,11 @@ function finishDraft(alt, keep){
   if (!placeCheck({ altKey:!!alt })){ draft = d; redraw(); return; }   // inválido: se conserva el dibujo para corregirlo
   if (K === 'zonaJugable' || K === 'zonaReservada' || (!keep && !placeMulti)){ setTool('sel'); const pr = $('#props'); if (pr) pr.scrollTop = 0; }
 }
-function placeEdificio(q){   // el centro de la huella queda en el punto (rumbo 180: sin rotación)
-  const m = CAT.modelos.find(x => x.id === edifModel) || CAT.modelos[0];
+function placeEdificio(q){   // el centro de la huella queda en el punto (rumbo 180: sin rotación); herramienta Vehículo = mismo flujo con su propio modelo
+  const m = CAT.modelos.find(x => x.id === curModelId()) || CAT.modelos[0];
   mutate(() => {
     const e = newEl('edificio', { nombre:m.nombre, modelo:m.id, rumbo:180, escala:1, y:0, x:r2(q[0] - m.huella.cx), z:r2(q[1] - m.huella.cz) });
+    if (m.fijo) delete e.escala;   // modelo fijo: sin escala
     M.edificios.push(e); sel = 'edificio:' + e.id;
   });
 }
@@ -3010,6 +3373,8 @@ function placeDir(kind, x, z, dir, keep){
 
 /* ------------------------------------------------------------ Interacción */
 const HINTS = {
+  recortar:'Recortar mapa: arrastra para dibujar el rectángulo · asas para ajustarlo · arrastra desde dentro para moverlo · números en Propiedades · Intro o «Aplicar recorte…» pide confirmación · Esc cancela',
+  tamano:'Tamaño del mapa: abre el diálogo',
   sel:'Clic: seleccionar · arrastrar: mover · vértices: arrastrar · doble clic en un segmento o clic en su punto medio: insertar vértice · clic derecho, X o Supr sobre un vértice: borrarlo · X o Supr: borrar el elemento',
   calle:'Calle: clic añade punto · doble clic o Enter termina · Esc cancela · clic derecho quita el último punto',
   sep:'Separador: clic añade punto · doble clic o Enter termina · Esc cancela',
@@ -3025,6 +3390,8 @@ const HINTS = {
   estac:'Estacionamiento: clic coloca un grupo de rayas · luego: arrastrar mueve, círculo exterior rota (Mayús = 15°), rombos cambian ancho y alto (más alto = MÁS rayas, nunca más gruesas)',
   maceta:'Maceta: clic coloca una maceta de concreto · luego: arrastrar mueve, círculos de los extremos cambian el largo, círculo exterior rota (Mayús = pasos de 15°)',
   cerca:'Cerca: clic añade puntos · doble clic o Enter termina · Esc cancela · aplicar longitud AÑADE paneles de 2,5 m (no los estira)',
+  vehiculo:'Vehículo: elige Arena Pro o Elite en la lista de la izquierda · clic coloca el vehículo con el centro de su huella en el punto y queda seleccionado (panel con selector de color) · arrastrar mueve, círculo exterior rota; no se escala (Mayús o «Colocar varios» mantienen la herramienta)',
+  complemento:'Complemento: elige el modelo (pared de zinc, poste de luz, semáforo…) en la lista de la izquierda · clic coloca con el centro de su huella en el punto y queda seleccionado · arrastrar mueve, círculo exterior rota; los modelos fijos no se escalan (Mayús o «Colocar varios» mantienen la herramienta)',
   edificio:'Edificio: elige el modelo en la lista de la izquierda · clic coloca el edificio con el centro de su huella en el punto · luego: arrastrar mueve, círculo exterior rota, esquinas escalan',
   bloque:'Bloque: clic añade puntos · doble clic o Enter cierra · Esc cancela',
   barrera:'Barrera: clic coloca · arrastra para definir la dirección de salida',
@@ -3035,10 +3402,12 @@ const HINTS = {
 };
 const mpos = e => { const r = cv.getBoundingClientRect(); return { x:e.clientX - r.left, y:e.clientY - r.top }; };
 function setTool(t){
+  if (t === 'tamano'){ openSizeDialog(); return; }   // no es una herramienta de lienzo: abre el diálogo
   if (tool === t) return;
-  tool = t; draft = null; edgeHover = null; addEntrada = null; semConn = null; if (t !== 'regla') ruler = null; snapInfo = null;
+  const prevT = tool; if (t !== 'recortar') cropRect = null; else if (!cropRect){ const r0 = mapRect(M); cropRect = r0 ? { x0:r0.x0, z0:r0.z0, x1:r0.x1, z1:r0.z1 } : null; }
+  tool = t; vsel = []; draft = null; edgeHover = null; addEntrada = null; semConn = null; if (t !== 'regla') ruler = null; snapInfo = null;
   document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
-  $('#stHint').textContent = HINTS[t]; renderToolOpts(); updateCursor(); redraw();
+  $('#stHint').textContent = HINTS[t]; renderToolOpts(); updateCursor(); if (t === 'recortar' || prevT === 'recortar') renderProps(); redraw();
 }
 function updateCursor(){
   let c = 'default';
@@ -3061,6 +3430,7 @@ function onDown(e){
   if (corteHit(p) && e.button === 0){ drag = { t:'corte' + corteHit(p) }; return; }
   if (tool === 'corte'){ const q = snapPt(w.x, w.z, e, null); drag = { t:'corteNew', A:[r2(q[0]), r2(q[1])] }; corte = { A:drag.A.slice(), B:drag.A.slice() }; PF.key = ''; return; }
   if (tool === 'relieve'){ relStart(e, w); return; }
+  if (tool === 'recortar'){ cropDown(e, w, p); return; }
   if (tool === 'sel'){
     if (addEntrada){   // clic: rampa pegada a la arista resaltada, en el punto proyectado
       const sn = snapRampa(w.x, w.z, { bid:addEntrada.bid, tolPx:Infinity }), tipoAdd = addEntrada.tipo; addEntrada = null; edgeHover = null;
@@ -3070,6 +3440,8 @@ function onDown(e){
       const st = hitStack(p).find(i => i.kind === 'edificio' && isSemEd(i.el)); if (st) semToggle(semConn.src, st.id); else toast('Haz clic en un semáforo (modelo semaforo-gantry) o pulsa Esc', 'warn'); return;
     }
     if (bg && bg.drag && bg.visible){ drag = { t:'bg', wx:w.x, wz:w.z, ox:bg.ox, oz:bg.oz }; return; }
+    if (e.shiftKey){ if (!e.altKey){ const vh = hitVertexAny(p); if (vh){ vselToggle(vh); return; } } }   // Mayús+clic en un círculo: añade/quita de la selección de vértices (máx. 2)
+    else if (vsel.length){ vsel = []; renderProps(); }   // clic normal: limpia la selección de vértices
     const it = selItem();
     if (it && !locked.has(it.key) && !hidden.has(it.key)){
       const h = hitHandle(it, p);
@@ -3135,7 +3507,7 @@ function onDown(e){
     const q = snapPt(w.x, w.z, e, null); draft.pts.push(q); redraw(); return;
   }
   if (tool === 'arbol'){ placeTree(snapPt(w.x, w.z, e, null)); if (placeCheck(e)) afterPlace(e); return; }
-  if (tool === 'edificio'){ placeEdificio(snapPt(w.x, w.z, e, null)); if (placeCheck(e)) afterPlace(e); return; }
+  if (tool === 'edificio' || CT[tool]){ if (CT[tool] && !CT[tool].m){ toast('No hay modelos de la categoría «' + CT[tool].nombre + '» en el catálogo', 'warn'); return; } placeEdificio(snapPt(w.x, w.z, e, null)); if (placeCheck(e)) afterPlace(e); return; }
   if (tool === 'flecha'){
     const q = snapPt(w.x, w.z, e, null), au = e.altKey ? null : autoFlecha(w.x, w.z);
     mutate(() => { const m = newEl('flecha', { nombre:'Flecha ' + (M.flechas.length + 1), x:r2(au ? au.x : q[0]), z:r2(au ? au.z : q[1]), rumbo:au ? au.rumbo : 0, tipo:flechaTipo, color:flechaColor }); M.flechas.push(m); sel = 'flecha:' + m.id; }); if (placeCheck(e)) afterPlace(e); return;
@@ -3178,6 +3550,7 @@ function onMove(e){
   if (relDrag){ relMove(e, w); redraw(); return; }
   if (corte && PF.open && !drag){ const a = w2s(corte.A[0], corte.A[1]), b = w2s(corte.B[0], corte.B[1]), l2 = (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2, t = l2 ? clamp(((p.x - a[0]) * (b[0] - a[0]) + (p.y - a[1]) * (b[1] - a[1])) / l2, 0, 1) : 0, dd = Math.hypot(p.x - (a[0] + (b[0] - a[0]) * t), p.y - (a[1] + (b[1] - a[1]) * t)); const g = dd < 14 ? t * Math.hypot(corte.B[0] - corte.A[0], corte.B[1] - corte.A[1]) : null; if (g !== PF.guide){ PF.guide = g; if (g != null) pfReadout(g); } }
   if (drag){
+    if (drag.t === 'crop'){ cropMove(e, w); return; }
     if (drag.t === 'corteNew' || drag.t === 'corteA' || drag.t === 'corteB'){
       const q = snapPt(w.x, w.z, e, null); let x = r2(q[0]), z = r2(q[1]); const O = drag.t === 'corteB' ? corte.A : drag.t === 'corteA' ? corte.B : drag.A;
       if (e.shiftKey){ if (Math.abs(x - O[0]) >= Math.abs(z - O[1])) z = O[1]; else x = O[0]; }   // Mayús: línea ortogonal a los ejes
@@ -3312,7 +3685,7 @@ function onMove(e){
       }
     } else if (drag.t === 'move'){
       const q = snapPt(drag.ax + (w.x - drag.wx), drag.az + (w.z - drag.wz), e, { key:it.key }); let dx = q[0] - drag.ax, dz = q[1] - drag.az;
-      if (collOn && !e.altKey && (it.kind === 'bloque' || it.kind === 'area')){ const m = magnetMove(it, drag.orig.pts, dx, dz); if (m[0] || m[1]){ dx += m[0]; dz += m[1]; snapInfo = null; } }
+      if (collOn && !e.altKey && it.kind === 'bloque'){ const m = magnetMove(it, drag.orig.pts, dx, dz); if (m[0] || m[1]){ dx += m[0]; dz += m[1]; snapInfo = null; } }
       if (geomOf(it) === 'point'){
         it.el.x = r2(drag.orig.x + dx); it.el.z = r2(drag.orig.z + dz);
         if (isEntrada(it.kind) && !e.altKey){ const sn = snapRampa(it.el.x, it.el.z, { tolPx:20 }); if (sn){ it.el.x = r2(sn.x); it.el.z = r2(sn.z); it.el.rumbo = sn.rumbo; } }   // se pega a la arista de la manzana
@@ -3333,7 +3706,7 @@ function onMove(e){
     const st = hoverH || space || drag ? [] : hitStack(p);
     hoverIt = st[0] || null; stackHint(st);
     snapInfo = null;
-  } else { hoverH = null; hoverIt = null; if (draft || tool === 'arbol' || tool === 'barrera' || tool === 'spawn' || tool === 'regla' || tool === 'edificio' || tool === 'maceta' || tool === 'estac' || tool === 'rampa' || TOOL_KIND[tool]){ const q = snapPt(w.x, w.z, e, null); if (draft || tool === 'regla' || tool === 'edificio'){ mouseW = { x:q[0], z:q[1] }; } } }
+  } else { hoverH = null; hoverIt = null; if (draft || tool === 'arbol' || tool === 'barrera' || tool === 'spawn' || tool === 'regla' || tool === 'edificio' || CT[tool] || tool === 'maceta' || tool === 'estac' || tool === 'rampa' || TOOL_KIND[tool]){ const q = snapPt(w.x, w.z, e, null); if (draft || tool === 'regla' || tool === 'edificio' || CT[tool]){ mouseW = { x:q[0], z:q[1] }; } } }
   updateCursor(); redraw();
 }
 function onUp(e){
@@ -3341,6 +3714,7 @@ function onUp(e){
   if (relDrag){ relEnd(); return; }
   if (!drag) return;
   const d = drag; drag = null;
+  if (d.t === 'crop'){ if (cropRect){ const r = cropNorm(cropRect); if (r.x1 - r.x0 < 0.5 || r.z1 - r.z0 < 0.5) cropRect = null; else cropRect = r; } renderProps(); redraw(); return; }
   if (d.t === 'corteNew'){ if (!corte || Math.hypot(corte.B[0] - corte.A[0], corte.B[1] - corte.A[1]) < 1){ corte = null; PF.key = ''; } else { if (!PF.open) pfOpen(true); else pfFit(); } redraw(); return; }
   if (d.t === 'corteA' || d.t === 'corteB'){ redraw(); return; }
   if (d.base || d.t === 'lado' || d.t === 'esq') $('#stHint').textContent = HINTS[tool];
@@ -3377,7 +3751,7 @@ cv.addEventListener('wheel', onWheel, { passive:false });
 cv.addEventListener('mouseleave', () => { if (!drag){ edgeHover = null; hoverH = null; hoverIt = null; snapInfo = null; stackHint([]); redraw(); } });
 
 const isTyping = t => t && t.matches && t.matches('input:not([type=checkbox]):not([type=range]):not([type=file]),textarea,select,[contenteditable=""],[contenteditable=true]');
-const TOOL_KEYS = { v:'sel', c:'calle', s:'sep', i:'area', t:'arbol', b:'bloque', r:'barrera', j:'zj', z:'zr', p:'spawn', m:'regla', e:'terreno', h:'edificio', u:'maceta', k:'cerca', l:'estac', y:'rampa', a:'flecha', w:'escalera', q:'relieve', o:'cruce', n:'corte' };
+const TOOL_KEYS = { v:'sel', c:'calle', s:'sep', i:'area', t:'arbol', b:'bloque', r:'barrera', j:'zj', z:'zr', p:'spawn', m:'regla', e:'terreno', h:'edificio', d:'vehiculo', 1:'complemento', 2:'recortar', 3:'tamano', u:'maceta', k:'cerca', l:'estac', y:'rampa', a:'flecha', w:'escalera', q:'relieve', o:'cruce', n:'corte' };
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape'){
     if ($('#overlay').classList.contains('show')) return closeModal();
@@ -3392,6 +3766,8 @@ window.addEventListener('keydown', e => {
     if (addEntrada){ addEntrada = null; edgeHover = null; renderProps(); $('#stHint').textContent = HINTS[tool]; redraw(); return; }
     if (draft){ draft = null; redraw(); return; }
     if (ruler){ ruler = null; redraw(); return; }
+    if (vselClean().length){ vsel = []; renderProps(); redraw(); return; }
+    if (tool === 'recortar'){ setTool('sel'); return; }
     if (sel){ sel = null; renderLayers(); renderProps(); redraw(); }
     return;
   }
@@ -3409,7 +3785,9 @@ window.addEventListener('keydown', e => {
   }
   if (e.altKey) return;
   if (e.key === ' '){ if (!space){ space = true; updateCursor(); } e.preventDefault(); return; }
-  if (e.key === 'Enter' && draft){ e.preventDefault(); finishDraft(false, e.shiftKey); return; }
+  if (e.key === 'Enter' && draft){ e.preventDefault(); finishDraft(e.altKey, e.shiftKey); return; }
+  if (e.key === 'Enter' && tool === 'recortar'){ e.preventDefault(); confirmCrop(); return; }
+  if (e.key === 'Enter' && vselClean().length === 2){ e.preventDefault(); joinVerts(false); return; }   // Intro: «Unir vértices» (J ya es Zona jugable)
   if (e.key === 'Delete' || e.key === 'Backspace'){
     const it = selItem(); if (!it) return; e.preventDefault();
     if (locked.has(it.key)) return toast('El elemento está bloqueado', 'warn');
@@ -3453,6 +3831,8 @@ const TOOLS = [
   ['cruce','Cruce peatonal','O','#f4f4f0','<path d="M2 4h2v8H2zM5.5 4h2v8h-2zM9 4h2v8H9zM12.5 4h2v8h-2z" fill="#f4f4f0" stroke="none"/>'],
   ['terreno','Terreno','E','#b08a5a','<path d="M2 11l2-7 8-1 2 8-6 3z" fill="#8a6a44" stroke="#c9a56e"/>'],
   ['edificio','Edificio','H','#9aa7b8','<rect x="2.5" y="2.5" width="11" height="8" fill="#8f98a6" stroke="#cfd6e2"/><path d="M8 11.5v3.5M6.3 13.6L8 15.3l1.7-1.7" stroke="#ffd54a"/>'],
+  ['vehiculo','Vehículo','D','#e8b04a','<path d="M1.5 11V8.4l1.5-3c.3-.6.8-.9 1.5-.9h7c.7 0 1.2.3 1.5.9l1.5 3V11z" fill="#e8b04a" stroke="#8a6420"/><path d="M4 8.2l1-2h6l1 2z" fill="#1f2937" stroke="none"/><circle cx="4.8" cy="11.5" r="1.6" fill="#1f2937" stroke="#e8b04a"/><circle cx="11.2" cy="11.5" r="1.6" fill="#1f2937" stroke="#e8b04a"/>'],
+  ['complemento','Complemento','1','#c9d1dc','<path d="M5 15h6M8 15V4.5M8 4.5h4.2" stroke="#c9d1dc" stroke-width="1.6"/><path d="M11 4.5h3.4l-.7 1.8h-2z" fill="#ffd54a" stroke="#ffd54a"/><path d="M12.7 7.4v2" stroke="#ffd54a" stroke-width="1"/>'],
   ['flecha','Flecha','A','#f4f4f0','<path d="M8 15V5" stroke="#f4f4f0" stroke-width="2.2"/><path d="M4.5 7L8 2l3.5 5z" fill="#f4f4f0" stroke="none"/>'],
   ['escalera','Escalera','W','#c9b98f','<path d="M2 13h12M3 10h10M4 7h8M5 4h6" stroke="#c9b98f" stroke-width="1.8"/>'],
   ['rampa','Rampa / Entrada','Y','#d9c9a0','<path d="M2 12h12v-2L9 4H5z" fill="#d9c9a0" stroke="#6a5d44"/><path d="M8 12V7M6 8.5L8 6.5l2 2" stroke="#3a3226"/>'],
@@ -3465,7 +3845,10 @@ const TOOLS = [
   ['zr','Zona reservada','Z','#4c82ff','<rect x="2.5" y="2.5" width="11" height="11" fill="rgba(76,130,255,.4)" stroke="#6b97ff"/>'],
   ['spawn','Spawn','P','#ffd54a','<rect x="2" y="5" width="8" height="6" rx="1" fill="#f4f4f4" stroke="#222"/><path d="M10 4l5 4-5 4z" fill="#ffd54a" stroke="#222"/>'],
   ['--','Medir'],
-  ['regla','Regla','M','#ffd54a','<path d="M1.5 11.5l9-9 4 4-9 9z" stroke="#ffd54a"/><path d="M5 8l1.5 1.5M7.5 5.5L9 7M3 10l1 1" stroke="#ffd54a"/>']
+  ['regla','Regla','M','#ffd54a','<path d="M1.5 11.5l9-9 4 4-9 9z" stroke="#ffd54a"/><path d="M5 8l1.5 1.5M7.5 5.5L9 7M3 10l1 1" stroke="#ffd54a"/>'],
+  ['--','Mapa'],
+  ['recortar','Recortar mapa','2','#ffd54a','<path d="M4 1v11h11M1 4h11v11" stroke="#ffd54a" stroke-width="1.8"/>'],
+  ['tamano','Tamaño del mapa','3','#ffd54a','<path d="M2.5 13.5l11-11M2.5 13.5h4.5M2.5 13.5V9M13.5 2.5H9M13.5 2.5V7" stroke="#ffd54a" stroke-width="1.7"/>']
 ];
 function buildTools(){
   $('#tools').innerHTML = TOOLS.map(t => t[0] === '--' ? '<h4>' + t[1] + '</h4>' :
@@ -3487,7 +3870,7 @@ function buildTools(){
     if (rm){ if (rm.dataset.rmodo) relCfg.modo = rm.dataset.rmodo; if (rm.dataset.rforma) relCfg.forma = rm.dataset.rforma; if (rm.dataset.rdur) relCfg.dureza = rm.dataset.rdur; renderToolOpts(); redraw(); return; }
     if (e.target.closest('#relAng0')){ relAngSet(0); renderToolOpts(); return; }
     if (e.target.closest('#relFlatV')){ relFlat(false); return; }
-    if (e.target.closest('#relFlatA')){ showModal('Aplanar todo el relieve', '<p>Se borrará todo el relieve del mapa (se puede deshacer con Ctrl+Z).</p>', [{ label:'Aplanar todo', cls:'primary', fn:() => relFlat(true) }, { label:'Cancelar' }]); return; } const ft = e.target.closest('[data-ftp]'); if (ft){ flechaTipo = ft.dataset.ftp; renderToolOpts(); return; } const fc = e.target.closest('[data-fcol]'); if (fc){ flechaColor = fc.dataset.fcol; renderToolOpts(); return; } const b = e.target.closest('.mod'); if (!b) return; edifModel = b.dataset.mod; renderToolOpts(); });
+    if (e.target.closest('#relFlatA')){ showModal('Aplanar todo el relieve', '<p>Se borrará todo el relieve del mapa (se puede deshacer con Ctrl+Z).</p>', [{ label:'Aplanar todo', cls:'primary', fn:() => relFlat(true) }, { label:'Cancelar' }]); return; } const ft = e.target.closest('[data-ftp]'); if (ft){ flechaTipo = ft.dataset.ftp; renderToolOpts(); return; } const fc = e.target.closest('[data-fcol]'); if (fc){ flechaColor = fc.dataset.fcol; renderToolOpts(); return; } const b = e.target.closest('.mod'); if (!b) return; if (CT[tool]) CT[tool].m = b.dataset.mod; else edifModel = b.dataset.mod; renderToolOpts(); });
 }
 function renderToolOpts(){
   const box = $('#toolOpts'); if (!box) return;
@@ -3505,9 +3888,12 @@ function renderToolOpts(){
       '<div class="hint">Clic coloca; sobre una calle se orienta a través de ella (Alt: sin auto-orientación).</div>';
     return;
   }
-  if (tool !== 'edificio'){ box.innerHTML = ''; return; }
-  box.innerHTML = '<h4>Modelo</h4>' + catGrupos().map(g => '<details class="cat"' + (catClosed.has(g.id) ? '' : ' open') + ' data-cat="' + esc(g.id) + '"><summary>' + esc(g.nombre) + ' <em>' + g.ms.length + '</em></summary>' +
-    g.ms.map(m => '<button class="mod' + (m.id === edifModel ? ' on' : '') + '" data-mod="' + esc(m.id) + '" title="' + esc(m.nombre) + '">' +
+  if (tool !== 'edificio' && !CT[tool]){ box.innerHTML = ''; return; }
+  const ct = CT[tool], grs = catGrupos().filter(g => ct ? g.id === ct.cat : !Object.values(CT).some(c => c.cat === g.id));
+  if (ct && !ctModels(tool).some(m => m.id === ct.m)) ct.m = ctModels(tool).length ? ctModels(tool)[0].id : '';
+  if (!grs.length){ box.innerHTML = '<h4>' + (ct ? kindLabel({ kind:'edificio', el:{ modelo:(ctModels(tool)[0] || {}).id } }) : 'Modelo') + '</h4><div class="hint">No hay modelos de esta categoría en ../modelos/catalogo.json.</div>'; return; }
+  box.innerHTML = '<h4>' + (tool === 'vehiculo' ? 'Vehículo' : tool === 'complemento' ? 'Complemento' : 'Modelo') + '</h4>' + grs.map(g => '<details class="cat"' + (catClosed.has(g.id) ? '' : ' open') + ' data-cat="' + esc(g.id) + '"><summary>' + esc(g.nombre) + ' <em>' + g.ms.length + '</em></summary>' +
+    g.ms.map(m => '<button class="mod' + (m.id === curModelId() ? ' on' : '') + '" data-mod="' + esc(m.id) + '" title="' + esc(m.nombre) + '">' +
       (thumbOk(m.id) ? '<img src="' + esc(THUMB[m.id].src) + '" alt="">' : '<i>' + esc((m.nombre || '?')[0]) + '</i>') + '<span>' + esc(m.nombre) + '</span></button>').join('') + '</details>').join('');
   box.querySelectorAll('details.cat').forEach(d => d.addEventListener('toggle', () => { d.open ? catClosed.delete(d.dataset.cat) : catClosed.add(d.dataset.cat); }));
 }
@@ -3531,7 +3917,8 @@ const SPEC = {
   area:[
     ['nombre','text','Nombre'],
     ['alto','num','Alto (m)',{ min:0, step:0.05, hint:'0 = parque al ras del suelo, sin bordillo.' }],
-    ['superficie','select','Superficie',{ opts:[['cesped','Césped'],['concreto','Concreto'],['piedras','Piedras claras'],['piedras_cafe','Piedras marrones']] }],
+    ['superficie','textura','Superficie (textura)'],
+    ['escala','num','Escala de la textura',{ min:0.1, step:0.1, hint:'Multiplicador del tamaño de la textura: 2 = el doble de grande (1 = por defecto).' }],
     ['borde','bool','Borde integrado (antiguo)',{ hint:'Usa separadores: el borde de la isla es ahora un separador independiente (botón «Regenerar borde»).' }],
     ['arboles','num','Árboles: separación (m)',{ min:0, step:1, hint:'Separación media entre árboles. 0 = sin árboles.' }],
     ['tipos','select','Tipos de árbol',{ opts:[['mixto','Mixto'],['frondosos','Frondosos'],['palmas','Palmas']] }],
@@ -3539,7 +3926,7 @@ const SPEC = {
   ],
   arbol:[['x','num','X (m)',{ step:1 }],['z','num','Z (m)',{ step:1 }],['tipo','select','Tipo',{ num:true, opts:TIPOS_ARBOL }]],
   bloque:[['alto','num','Altura de la acera (m)',{ min:0.05, max:1.5, step:0.05, hint:'Altura del bordillo/acera sobre la calle (por defecto 0,3 m).' }],['aceraAncho','num','Acera: ancho (m)',{ min:0, max:30, step:0.5, hint:'Se mide solo HACIA ADENTRO desde el borde. 0 = sin acera aparte.' }],['aceraLados','aceralados','Acera en los lados'],['bordeLados','aceralados','Bordillo en los lados'],['altoInterior','num','Altura del terreno interior (m)',{ min:0.02, max:1.5, step:0.01, hint:'Por defecto = la altura de la acera. 0,02 = a nivel de calle (p. ej. un estacionamiento).' }],['textura','textura','Suelo del terreno interior'],['texturaAcera','textura','Suelo de la acera'],['escala','num','Escala de la textura',{ min:0.1, step:0.1, hint:'Multiplicador del tamaño: 2 = el doble de grande.' }],SUAV],
-  edificio:[['nombre','text','Nombre'],['modelo','select','Modelo',{ opts:() => CAT.modelos.map(m => [m.id, m.nombre, catNombre(m)]) }],['modulos','modulos','Módulos'],['x','num','X (m)',{ step:1 }],['z','num','Z (m)',{ step:1 }],['rumbo','num','Rumbo del frente (°)',{ step:5, hint:'Hacia dónde mira el frente: 0 = norte, 90 = este, 180 = sur, 270 = oeste.' }],['escala','num','Escala',{ min:0.05, step:0.05 }],['y','num','Altura de la base y (m)',{ step:0.05, hint:'Las manzanas están a 0,3 m de alto por defecto.' }]],
+  edificio:[['nombre','text','Nombre'],['modelo','select','Modelo',{ opts:() => CAT.modelos.map(m => [m.id, m.nombre, catNombre(m)]) }],['color','ecolor','Color'],['modulos','modulos','Módulos'],['x','num','X (m)',{ step:1 }],['z','num','Z (m)',{ step:1 }],['rumbo','num','Rumbo del frente (°)',{ step:5, hint:'Hacia dónde mira el frente: 0 = norte, 90 = este, 180 = sur, 270 = oeste.' }],['escala','num','Escala',{ min:0.05, step:0.05, show:el => !modelOf(el).fijo }],['y','num','Altura de la base y (m)',{ step:0.05, hint:'Las manzanas están a 0,3 m de alto por defecto.' }]],
   maceta:[['nombre','text','Nombre'],['x','num','X (m)',{ step:1 }],['z','num','Z (m)',{ step:1 }],['rumbo','num','Rumbo del lado largo (°)',{ step:5, hint:'0 = norte-sur, 90 = este-oeste (brújula).' }],['largo','num','Largo (m)',{ min:0.3, step:0.1 }],['ancho','num','Ancho (m)',{ min:0.1, step:0.05 }],['alto','num','Alto (m)',{ min:0.1, step:0.05 }],['planta','select','Planta',{ opts:[['areca','Palmera areca'],['ninguna','Ninguna']] }],['plantaAlto','num','Altura de la planta (m)',{ min:0.2, step:0.1 }],['y','num','Altura de la base y (m)',{ step:0.05, hint:'Opcional: vacío = el suelo o la manzana bajo su centro.' }]],
   escalera:[['nombre','text','Nombre'],['x','num','X (m)',{ step:0.5 }],['z','num','Z (m)',{ step:0.5 }],['rumbo','num','Rumbo hacia dentro (°)',{ step:5, hint:'Hacia DENTRO de la manzana: la escalera se excava en ese sentido y sube hacia dentro (brújula: 0 = norte, 90 = este).' }],['ancho','num','Ancho (m)',{ min:0.5, step:0.5 }],['peldanos','int','Peldaños',{ min:1, max:40, hint:'Por defecto round(alto / 0,17).' }],['largo','num','Largo (m)',{ min:0.3, step:0.1, hint:'Profundidad hacia DENTRO de la manzana (por defecto peldaños × 0,3 m).' }],['alto','num','Alto (m)',{ min:0.02, step:0.05, hint:'Vacío = la altura de la manzana en ese punto.' }]],
   cruce:[['nombre','text','Nombre'],['tipo','select','Tipo',{ opts:CRUCE_TIPOS }],['rumbo','num','Rumbo (°)',{ step:5, hint:'Dirección en que camina el peatón (a través de la calle). Las barras quedan paralelas al tráfico (0 = norte, 90 = este).' }],['largo','num','Largo (m)',{ min:1, step:0.5, hint:'Cruce completo a través de la calle. Más largo = MÁS barras, nunca más gruesas (barras = largo / paso + 1).' }],['ancho','num','Ancho (m)',{ min:0.3, step:0.5, hint:'A lo largo del tráfico: largo de cada barra y separación de las dos líneas.' }],['paso','num','Paso (m)',{ min:0.2, step:0.1, hint:'Separación centro a centro entre barras.' }],['barra','num','Grosor de barra (m)',{ min:0.05, step:0.05 }],['color','select','Color',{ opts:[['blanco', 'Blanco'], ['amarillo', 'Amarillo']] }],['x','num','X (m)',{ step:0.5 }],['z','num','Z (m)',{ step:0.5 }]],
@@ -3558,11 +3945,11 @@ function markSvg(m){
     ninguna:'', discontinua:ln(y, 1), continua:ln(y), doble:ln(y - 2.5) + ln(y + 2.5), semicontinua:ln(y - 2.5) + ln(y + 2.5, 1)
   })[m] + '</svg>';
 }
-function thumbStyle(n){
-  const t = TX[TEXMAP[n]];
-  if (!t || !t.ready) return 'background-color:' + TEXFLAT[n];
+function thumbStyle(n, ar){   // ar: muestras de islas/parques («cesped» = césped claro con su tinte verde; «cesped_oscuro» = el de los terrenos)
+  const key = ar && n === 'cesped_oscuro' ? 'cesped' : n, t = TX[TEXMAP[key]], ov = ar && n === 'cesped' ? 'linear-gradient(rgba(62,180,46,.5),rgba(62,180,46,.5)),' : '';
+  if (!t || !t.ready) return 'background-color:' + (ov ? '#5aa84e' : TEXFLAT[key]);
   if (!t.dataUrl) t.dataUrl = t.url || t.src.toDataURL();
-  return 'background-color:' + TEXFLAT[n] + ';background-image:url(' + t.dataUrl + ')';
+  return 'background-color:' + TEXFLAT[key] + ';background-image:' + ov + 'url(' + t.dataUrl + ')';
 }
 function fieldVal(it, k){
   const e = it.el;
@@ -3570,6 +3957,7 @@ function fieldVal(it, k){
   if (k === 'dir') return bearingOfDir(e.dx, e.dz);
   if (k === 'color') return e.color || '';
   if (k === 'rotacion' && it.kind === 'terreno') return e.rotacion || 0;
+  if (k === 'escala' && it.kind === 'area') return e.escala > 0 ? e.escala : 1;
   if (k === 'altoInterior' && it.kind === 'bloque') return e.altoInterior !== undefined ? e.altoInterior : e.alto;
   return e[k];
 }
@@ -3589,6 +3977,13 @@ function fieldHTML(it, f){
   if (t === 'grosor'){
     const g = it.el.grosor > 0 ? it.el.grosor : 0.3;
     return '<label class="f"><span>' + label + '</span><input type="number" id="grNum" min="0.05" max="1" step="0.05" value="' + g + '"></label><input type="range" id="grRange" min="0.05" max="1" step="0.01" value="' + g + '" style="width:100%;margin:0 0 8px" aria-label="Grosor de la pintura"><div class="hint">0,05 a 1 m (def. 0,3). Real: no escala con el largo.</div>';
+  }
+  if (t === 'ecolor'){   // modelos `colorable`: selector de color + muestras del catálogo + «Color original»
+    const co = modelOf(it.el).colorable; if (!co) return '';
+    const def = String(co.defecto || '#ffffff').toLowerCase(), cur = it.el.color ? it.el.color.toLowerCase() : def;
+    return '<div class="f" style="display:block"><span>' + label + '</span></div><div class="ccols" role="radiogroup" aria-label="Color del vehículo"><input type="color" id="ecIn" value="' + cur + '" title="Elegir otro color">' +
+      (co.colores || []).map(c => '<button type="button" role="radio" aria-checked="' + (c.toLowerCase() === cur) + '" data-ecol="' + c + '" class="' + (c.toLowerCase() === cur ? 'on' : '') + '" title="' + c + '" style="background:' + c + '"></button>').join('') +
+      '<button type="button" data-ecol="" title="Vuelve al color original del modelo">Color original</button></div>';
   }
   if (t === 'modulos'){
     const mm = modelOf(it.el); if (!mm.modular) return '';
@@ -3614,8 +4009,8 @@ function fieldHTML(it, f){
     return '<label class="f"><span>' + label + '</span><select data-k="color"><option value=""' + (v === '' ? ' selected' : '') + '>Automático (' + auto + ')</option><option value="gris"' + (v === 'gris' ? ' selected' : '') + '>Gris</option><option value="naranja"' + (v === 'naranja' ? ' selected' : '') + '>Naranja (externa)</option></select></label><div class="hint">Solo afecta al minimapa y al editor.</div>';
   }
   if (t === 'textura'){
-    return '<div class="f" style="display:block"><span>' + label + '</span></div><div class="texes" role="radiogroup" aria-label="Textura">' + TEXNAMES.map(([n, tx]) =>
-      '<button type="button" role="radio" aria-checked="' + (n === v) + '" data-tex="' + n + '" data-tf="' + k + '" class="' + (n === v ? 'on' : '') + '" title="' + tx + '" style="' + thumbStyle(n) + '"><span>' + (n === 'adoquin' && it.kind === 'bloque' ? 'Adoquín (por defecto)' : tx) + '</span></button>').join('') + '</div>';
+    return '<div class="f" style="display:block"><span>' + label + '</span></div><div class="texes" role="radiogroup" aria-label="Textura">' + (it.kind === 'area' ? AREA_TEXNAMES : TEXNAMES).map(([n, tx]) =>
+      '<button type="button" role="radio" aria-checked="' + (n === v) + '" data-tex="' + n + '" data-tf="' + k + '" class="' + (n === v ? 'on' : '') + '" title="' + tx + '" style="' + thumbStyle(n, it.kind === 'area') + '"><span>' + (n === 'adoquin' && it.kind === 'bloque' ? 'Adoquín (por defecto)' : tx) + '</span></button>').join('') + '</div>';
   }
   if (t === 'ftipo'){
     return '<div class="f" style="display:block"><span>' + label + '</span></div><div class="ftp" role="radiogroup" aria-label="Tipo de flecha">' + Object.keys(FLECHAS).map(n => '<button type="button" role="radio" aria-checked="' + (n === v) + '" data-ftipo="' + n + '" class="' + (n === v ? 'on' : '') + '" title="' + FLECHA_NOMBRES[n] + '">' + flechaSVG(n, it.el.color === 'amarillo' ? '#f2c628' : '#f4f4f0') + '</button>').join('') + '</div>';
@@ -3649,12 +4044,13 @@ function renderProps(){
   if (selV && selV.key !== sel) selV = null;
   if (semConn && sel !== 'edificio:' + semConn.src) semConn = null;
   const box = $('#props'), it = selItem();
+  if (tool === 'recortar'){ box.innerHTML = cropHTML(); return; }
   if (!it){
-    box.innerHTML = '<div class="empty" style="padding:2px 0">Nada seleccionado.<br>Haz clic en un elemento del mapa o en la lista de capas, o elige una herramienta de dibujo.</div>';
+    box.innerHTML = vselHTML() + '<div class="empty" style="padding:2px 0">Nada seleccionado.<br>Haz clic en un elemento del mapa o en la lista de capas, o elige una herramienta de dibujo.</div>';
     return;
   }
   const K = KINDS[it.kind], g = K.geom;
-  let h = '<div class="phead"><span class="tag" style="background:' + K.color + '"></span><b>' + K.label + (it.id ? ' <small style="color:var(--dim);font-weight:400">' + esc(it.id) + '</small>' : '') + '</b>' +
+  let h = '<div class="phead"><span class="tag" style="background:' + K.color + '"></span><b>' + kindLabel(it) + (it.id ? ' <small style="color:var(--dim);font-weight:400">' + esc(it.id) + '</small>' : '') + '</b>' +
     '</div><div class="acts"><button id="pCen" title="Centrar la vista en el elemento">Centrar</button>' + (it.kind === 'flecha' ? '<button id="pInv180" title="Gira la flecha 180°">Invertir 180°</button>' : '') + (it.kind === 'area' && it.el.alto > 0 ? '<button id="pRegen" title="Crea o rehace el separador de borde de esta isla (conserva su ancho y alto)">Regenerar borde</button>' : '') + (it.kind === 'terreno' ? '<button id="pFront" title="Dibujarlo encima de los demás terrenos">Traer al frente</button><button id="pBack" title="Dibujarlo debajo de los demás terrenos">Enviar al fondo</button>' : '') + (g === 'line' ? '<button id="pRev" title="Invertir el orden de los puntos">Invertir sentido</button>' : '') +
     (K.single ? '' : '<button id="pDup" title="Duplicar (Ctrl+D)">Duplicar</button>') + '<button id="pDel" class="danger" title="Eliminar (Supr)">Eliminar</button></div>';
   if (g === 'poly'){ const n = ptsOf(it).length; h += '<div class="pinfo">' + n + ' puntos · perímetro ' + lineLen(ptsOf(it), true).toFixed(1) + ' m · área ' + Math.round(polyArea(ptsOf(it))).toLocaleString('es') + ' m²</div>'; }
@@ -3676,7 +4072,7 @@ function renderProps(){
   h += (SPEC[it.kind] || []).filter(f => !(f[3] && f[3].show && !f[3].show(it.el))).map(f => fieldHTML(it, f)).join('');
   if (K.single && g === 'poly') h += '<div class="hint">Edita los vértices en el lienzo. Para reemplazarla, dibuja una nueva con su herramienta.</div>';
   if (it.kind === 'edificio' && isSemEd(it.el)) h += semHTML(it);
-  box.innerHTML = h;
+  box.innerHTML = vselHTML() + h;
   if (it.kind === 'bloque') acSync(it);
 }
 function setProp(it, k, raw, el, mo){   // mo = opciones de mutate (al teclear: { props:false } para NO reconstruir el panel ni perder el foco)
@@ -3695,6 +4091,7 @@ function setProp(it, k, raw, el, mo){   // mo = opciones de mutate (al teclear: 
     else if (k === 'dir'){ const a = val * PI / 180; e.dx = r4(Math.sin(a)); e.dz = r4(-Math.cos(a)); }
     else if (k === 'color'){ if (val === '') delete e.color; else e.color = val; }
     else if (k === 'rotacion' && it.kind === 'terreno'){ const nv = normRot(val), d = nv - (e.rotacion || 0); if (d){ e.puntos = rotPts(e.puntos, bboxC(e.puntos), d); } if (nv) e.rotacion = nv; else delete e.rotacion; }   // gira los puntos (delta respecto al valor anterior) y la textura
+    else if (k === 'escala' && it.kind === 'area'){ if (!(val > 0) || Math.abs(val - 1) < 1e-9) delete e.escala; else e.escala = val; }   // 1 = por defecto (no se guarda)
     else if (k === 'modulos'){ if (!(val >= 2)) delete e.modulos; else e.modulos = Math.min(60, Math.round(val)); }
     else if (k === 'ancho' && it.kind === 'edificio'){ const md = modelOf(e); if (md.modular && md.modular.libre){ const a = clamp(val, md.modular.anchoMin || 1, 400); if (Math.abs(a - md.modular.paso) < 0.005) delete e.ancho; else e.ancho = r2(a); } }
     else e[k] = (k === 'x' || k === 'z') ? r2(val) : val;
@@ -3704,7 +4101,7 @@ function setProp(it, k, raw, el, mo){   // mo = opciones de mutate (al teclear: 
     }
     if (it.kind === 'area' && k === 'alto' && !(altoPrev > 0) && val > 0 && !bordeOf(e)) crearBorde(e);
     if (it.kind === 'edificio' && k === 'modelo' && !isSemEd(e)) semRemove(e.id);
-    if (it.kind === 'edificio' && k === 'modelo'){ const md = modelOf(e); if (!md.modular || md.modular.libre) delete e.modulos; if (!md.modular || !md.modular.libre) delete e.ancho; }
+    if (it.kind === 'edificio' && k === 'modelo'){ const md = modelOf(e); if (md.fijo) delete e.escala; else if (!(e.escala > 0)) e.escala = 1; if (!md.colorable || (e.color && e.color.toLowerCase() === String(md.colorable.defecto || '#ffffff').toLowerCase())) delete e.color; if (!md.modular || md.modular.libre) delete e.modulos; if (!md.modular || !md.modular.libre) delete e.ancho; }
     if (!SKIP_REMEMBER.has(k) && !(it.kind === 'edificio' && k === 'ancho') && !KINDS[it.kind].single){ (toolDefaults[it.kind] = toolDefaults[it.kind] || {})[k] = e[k]; }
   }, 'prop:' + it.key + ':' + k, mo);
 }
@@ -3722,6 +4119,10 @@ $('#props').addEventListener('input', e => {
     const v = clamp(parseFloat(t.value) || 0.3, 0.05, 1);
     mutate(() => { if (Math.abs(v - 0.3) < 1e-9) delete it.el.grosor; else it.el.grosor = Math.round(v * 100) / 100; }, 'gro:' + it.key, { props:false });
     const o = t.id === 'grNum' ? $('#grRange') : $('#grNum'); if (o) o.value = v; return;
+  }
+  if (it && it.kind === 'edificio' && t.id === 'ecIn'){
+    mutate(() => setEdColor(it.el, t.value), 'ecolor:' + it.key, { props:false });
+    document.querySelectorAll('#props [data-ecol]').forEach(b => { const on = b.dataset.ecol !== '' && b.dataset.ecol.toLowerCase() === t.value.toLowerCase(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); return;
   }
   if (it && it.kind === 'cerca' && t.id === 'ccIn'){
     mutate(() => setCercaColor(it.el, t.value), 'ccolor:' + it.key, { props:false });
@@ -3764,6 +4165,21 @@ $('#props').addEventListener('change', e => {   // al salir de un campo: si el f
   const t = e.target; if (!(t.dataset.k && t.type !== 'checkbox' && t.tagName !== 'SELECT')) return;
   setTimeout(() => { const it = selItem(); if (!it) return; const ae = document.activeElement; if (ae && ae !== document.body && ae.closest && ae.closest('#props') && ae.dataset && ae.dataset.k) syncProps(it); else renderProps(); }, 0);
 });
+$('#vJoin').addEventListener('click', e => joinVerts(e.altKey));
+$('#props').addEventListener('input', e => {   // campos numéricos del rectángulo de «Recortar mapa»
+  const t = e.target; if (tool !== 'recortar' || !t.id || !/^crop[XZWL]$/.test(t.id) || !cropRect) return;
+  const R = cropNorm(cropRect), v = parseFloat(t.value); if (!isFinite(v)) return;
+  if (t.id === 'cropX'){ const w = R.x1 - R.x0; R.x0 = v; R.x1 = v + w; } else if (t.id === 'cropZ'){ const l = R.z1 - R.z0; R.z0 = v; R.z1 = v + l; }
+  else if (t.id === 'cropW') R.x1 = R.x0 + Math.max(0, v); else R.z1 = R.z0 + Math.max(0, v);
+  cropRect = R; const go = $('#cropGo'); if (go) go.disabled = !(R.x1 - R.x0 >= 1 && R.z1 - R.z0 >= 1); redraw();
+});
+$('#props').addEventListener('click', e => {
+  if (tool !== 'recortar') return;
+  if (e.target.closest('#cropGo')) confirmCrop();
+  else if (e.target.closest('#cropNo')) setTool('sel');
+  else if (e.target.closest('#cropZona')){ const r0 = mapRect(M); if (r0){ cropRect = { x0:r0.x0, z0:r0.z0, x1:r0.x1, z1:r0.z1 }; renderProps(); redraw(); } else toast('No hay zona jugable ni contenido', 'warn'); }
+});
+$('#props').addEventListener('click', e => { if (e.target.closest('#pJoinV')){ joinVerts(e.altKey); return; } if (e.target.closest('#pVClr')){ vsel = []; renderProps(); redraw(); return; } });
 $('#props').addEventListener('click', e => {
   const it = selItem(); if (!it) return;
   const sgb = e.target.closest('[data-sg]');
@@ -3777,6 +4193,8 @@ $('#props').addEventListener('click', e => {
     if (a === 'rm'){ mutate(() => semRemove(mid)); return; }
     if (a === 'up' || a === 'down'){ const i = g.miembros.indexOf(mid), j = a === 'up' ? i - 1 : i + 1; if (i < 0 || j < 0 || j >= g.miembros.length) return; mutate(() => { const t = g.miembros[i]; g.miembros[i] = g.miembros[j]; g.miembros[j] = t; }); return; }
   }
+  const ec = e.target.closest('[data-ecol]');
+  if (ec && it.kind === 'edificio'){ mutate(() => setEdColor(it.el, ec.dataset.ecol), 'prop:' + it.key + ':color'); renderProps(); return; }
   const cc = e.target.closest('[data-ccolor]');
   if (cc && it.kind === 'cerca'){ mutate(() => setCercaColor(it.el, cc.dataset.ccolor), 'prop:' + it.key + ':color'); renderProps(); return; }
   const m = e.target.closest('[data-marca]');
@@ -3827,14 +4245,14 @@ function itemLabel(it){
     case 'cruce': return e.nombre || 'Cruce ' + e.id;
     case 'escalera': return e.nombre || 'Escalera ' + e.id;
     case 'cerca': return e.nombre || 'Cerca ' + e.id;
-    default: return KINDS[it.kind].label;
+    default: return kindLabel(it);
   }
 }
 function itemMeta(it){
   const e = it.el;
   if (it.kind === 'calle') return e.ancho + ' m' + (e.jugable === false ? ' · ext' : '') + (e.extra ? ' · extra' : '');
   if (it.kind === 'area') return e.alto > 0 ? 'isla' : 'parque';
-  if (it.kind === 'edificio') return e.rumbo + '° · ×' + e.escala;
+  if (it.kind === 'edificio') return e.rumbo + '°' + (e.escala > 0 ? ' · ×' + e.escala : '');
   if (it.kind === 'maceta') return e.largo + '×' + e.ancho + ' m';
   if (it.kind === 'estacionamiento') return estRect(e).n + ' rayas';
   if (it.kind === 'rampa') return e.ancho + '×' + e.largo + ' m';
@@ -3848,11 +4266,11 @@ function itemMeta(it){
 }
 function renderLayers(){
   const all = items(), groups = [
-    ['terreno', 'Terrenos'], ['calle', 'Calles'], ['separador', 'Separadores'], ['area', 'Islas y parques'], ['arbol', 'Árboles'], ['bloque', 'Bloques'], ['edificio', 'Edificios'], ['maceta', 'Macetas'], ['cerca', 'Cercas'], ['estacionamiento', 'Estacionamientos'], ['flecha', 'Flechas'], ['escalera', 'Escaleras'], ['cruce', 'Cruces'], ['rampa', 'Rampas'], ['barrera', 'Barreras'], ['zonas', 'Zonas y spawn']
+    ['terreno', 'Terrenos'], ['calle', 'Calles'], ['separador', 'Separadores'], ['area', 'Islas y parques'], ['arbol', 'Árboles'], ['bloque', 'Bloques'], ['edificio', 'Edificios'], ['vehiculo', 'Vehículos'], ['complemento', 'Complementos'], ['maceta', 'Macetas'], ['cerca', 'Cercas'], ['estacionamiento', 'Estacionamientos'], ['flecha', 'Flechas'], ['escalera', 'Escaleras'], ['cruce', 'Cruces'], ['rampa', 'Rampas'], ['barrera', 'Barreras'], ['zonas', 'Zonas y spawn']
   ];
   let h = '';
   for (const [k, title] of groups){
-    const list = k === 'zonas' ? all.filter(i => KINDS[i.kind].single) : all.filter(i => i.kind === k);
+    const list = k === 'zonas' ? all.filter(i => KINDS[i.kind].single) : k === 'vehiculo' || k === 'complemento' || k === 'edificio' ? all.filter(i => i.kind === 'edificio' && edGrp(i.el) === k) : all.filter(i => i.kind === k);
     if (!list.length) continue;
     h += '<div class="lh">' + title + ' <em>' + list.length + '</em></div>';
     for (const it of list){
@@ -3967,7 +4385,7 @@ function showHelp(){
   const rows = (a) => a.map(([k, d]) => '<div><span>' + d + '</span><span>' + k + '</span></div>').join('');
   showModal('Atajos de teclado y ratón',
     '<div class="keys"><h5>Herramientas</h5>' + rows([
-      ['<kbd>V</kbd>','Seleccionar / mover'],['<kbd>C</kbd>','Calle'],['<kbd>S</kbd>','Separador'],['<kbd>I</kbd>','Isla / Parque'],['<kbd>T</kbd>','Árbol'],['<kbd>B</kbd>','Bloque'],['<kbd>E</kbd>','Terreno con textura'],['<kbd>H</kbd>','Edificio 3D (modelo del catálogo)'],['<kbd>U</kbd>','Maceta de concreto'],['<kbd>K</kbd>','Cerca de malla soldada'],['<kbd>L</kbd>','Líneas de estacionamiento'],['<kbd>Y</kbd>','Rampa / entrada a una manzana (se ajusta a la arista)'],['<kbd>Q</kbd>','Relieve: pincel que sube, baja, nivela, suaviza o traza un plano inclinado de A a B (Mayús invierte Subir/Bajar, Ctrl+arrastre nivela, Alt + rueda = radio; con el pincel CUADRADO la rueda lo gira (5°; Mayús 15°; Ctrl 1°; R / Mayús+R = ±90°; campo «Ángulo del pincel») y el zoom pasa a Ctrl+Alt+rueda; casilla «Proteger calles y manzanas»; capa Relieve en la barra de vista)'],['<kbd>O</kbd>','Cruce peatonal (cebra, líneas o escalera; sobre una calle se orienta a través de ella y toma su ancho; Alt = sin auto-orientación). Está exento de las restricciones de colisión: puede solaparse con cualquier elemento y con otros cruces'],['Semáforos (modelo semaforo-gantry)','En el panel del semáforo: «Conectar semáforos» (clic en otros semáforos para añadir o quitar, 2 a 4, Esc termina), orden de turno, Verde/Ámbar/Despeje y «Probar ciclo». El 1.º da verde, luego el 2.º…; solo pasa UNA calle'],['Panel del Bloque: «Acera en los lados» y «Bordillo en los lados»','Checklist Todos / Arriba / Abajo / Derecha / Izquierda y por arista: dónde llevan acera (aceraLados; solo con «Acera: ancho» > 0) y bordillo (bordeLados). La acera termina recta (perpendicular) en las esquinas entre un lado con acera y otro sin ella. Al pasar el cursor por una casilla se resalta la arista en el lienzo; las aristas sin acera se ven punteadas al seleccionar'],['<kbd>N</kbd>','Corte (vista lateral): arrastra A→B sobre el plano (Mayús = ortogonal); el panel inferior «Vista lateral» dibuja el perfil con relieve, manzanas, islas, rampas, escaleras, edificios y cercas (exageración 1×–10×, rueda = zoom, arrastrar = mover, «Perfil de la selección»). No se guarda en el mapa'],['<kbd>Tab</kbd> · botón «Vista: Aérea | Lateral»','Cambia el lienzo entre la vista aérea y la VISTA LATERAL: elevación de TODA el área visible vista desde el Sur (también Norte, Este y Oeste con los botones o ←/→ para girar 90°). Cada columna muestra la envolvente máxima de la altura (relieve, manzanas, islas, rampas, escaleras, edificios y cercas); las capas lejanas se ven más tenues. Exageración 1×–10×, rueda = zoom, arrastrar = mover, F = ajustar, cota al pasar el cursor, «Perspectiva 3D lateral» abre el juego en 3D desde ese lado. Tab o Esc vuelven a la aérea restaurando la vista anterior. (La L sigue siendo Estacionamiento)'],['<kbd>W</kbd>','Escalera en una manzana (se ajusta a la arista; en el rombo de una arista: doble clic = rampa, Mayús + doble clic = escalera)'],['<kbd>A</kbd>','Flecha de pavimento (sobre una calle toma su rumbo y va al carril derecho; Alt = sin auto-orientación)'],['Barrera: manijas de los extremos','Cambian la longitud (módulos de 2,5 m)'],
+      ['<kbd>V</kbd>','Seleccionar / mover'],['<kbd>C</kbd>','Calle'],['<kbd>S</kbd>','Separador'],['<kbd>I</kbd>','Isla / Parque (EXENTA de las restricciones de colisión: se puede poner sobre calles, manzanas y otras islas, al colocarla, arrastrarla o editar vértices; los árboles y objetos dentro de ella siguen su regla. Superficie: las mismas texturas que los terrenos, incluidos «Césped de isla/parque»; «Césped (claro, por defecto)» = cesped; más «Escala de la textura»)'],['<kbd>T</kbd>','Árbol'],['<kbd>B</kbd>','Bloque'],['<kbd>E</kbd>','Terreno con textura'],['<kbd>H</kbd>','Edificio 3D (modelo del catálogo, SOLO la categoría «Edificios»; los vehículos y complementos tienen su propia herramienta). Los modelos «fijos» no se escalan (solo mover y girar) y los «colorables» tienen selector de color con muestras y «Color original» (campo color)'],['<kbd>D</kbd>','Vehículo: misma paleta pero SOLO la categoría «Vehículos» (Arena Pro, Elite…); clic coloca, queda seleccionado con el panel «Vehículo» y el selector de color; no se escala, se mueve y se rota. Se guarda como edificio con modelo del catálogo y aparece en la capa «Vehículos». (G ya es el ajuste a cuadrícula)'],['<kbd>1</kbd>','Complemento: paleta SOLO con la categoría «Complementos» (pared de zinc, poste de luz doble LED, semáforo de pórtico…; el semáforo se detecta por `semaforo:true` y admite «Conectar semáforos»). Clic coloca y queda seleccionado con el panel «Complemento»; los modelos fijos no se escalan y los modulares usan su ancho/módulos. Capa «Complementos» aparte. (Todas las letras ya están en uso: por eso la tecla es un número)'],['<kbd>U</kbd>','Maceta de concreto'],['<kbd>K</kbd>','Cerca de malla soldada'],['<kbd>L</kbd>','Líneas de estacionamiento'],['<kbd>Y</kbd>','Rampa / entrada a una manzana (se ajusta a la arista)'],['<kbd>Q</kbd>','Relieve: pincel que sube, baja, nivela, suaviza o traza un plano inclinado de A a B (Mayús invierte Subir/Bajar, Ctrl+arrastre nivela, Alt + rueda = radio; con el pincel CUADRADO la rueda lo gira (5°; Mayús 15°; Ctrl 1°; R / Mayús+R = ±90°; campo «Ángulo del pincel») y el zoom pasa a Ctrl+Alt+rueda; casilla «Proteger calles y manzanas»; capa Relieve en la barra de vista)'],['<kbd>O</kbd>','Cruce peatonal (cebra, líneas o escalera; sobre una calle se orienta a través de ella y toma su ancho; Alt = sin auto-orientación). Está exento de las restricciones de colisión: puede solaparse con cualquier elemento y con otros cruces'],['Semáforos (modelo semaforo-gantry)','En el panel del semáforo: «Conectar semáforos» (clic en otros semáforos para añadir o quitar, 2 a 4, Esc termina), orden de turno, Verde/Ámbar/Despeje y «Probar ciclo». El 1.º da verde, luego el 2.º…; solo pasa UNA calle'],['Panel del Bloque: «Acera en los lados» y «Bordillo en los lados»','Checklist Todos / Arriba / Abajo / Derecha / Izquierda y por arista: dónde llevan acera (aceraLados; solo con «Acera: ancho» > 0) y bordillo (bordeLados). La acera termina recta (perpendicular) en las esquinas entre un lado con acera y otro sin ella. Al pasar el cursor por una casilla se resalta la arista en el lienzo; las aristas sin acera se ven punteadas al seleccionar'],['<kbd>2</kbd>','Recortar mapa: arrastra un rectángulo (asas para ajustarlo, números X/Z/ancho/largo en Propiedades). «Aplicar recorte…» (Intro) muestra un resumen y pide confirmación: lo que queda totalmente fuera se elimina, polígonos y líneas que cruzan el borde se recortan (las calles pueden partirse en trozos; se pierden los radios/aceraLados/bordeLados de los polígonos recortados), los objetos puntuales y modelos se conservan si su centro queda dentro. La zona jugable se recorta, el spawn se mueve dentro si quedaba fuera y el relieve fuera se aplana. Un solo paso de deshacer'],['<kbd>3</kbd>','Tamaño del mapa: diálogo con el tamaño actual, nuevo ancho/largo o factor, ancla (9 posiciones) y vista previa. «Cambiar lienzo» agranda/achica la zona jugable sin mover el contenido (al achicar recorta con aviso); «Escalar contenido» (×0,5, ×2…) escala posiciones, anchos de calle, radios, aceras y huellas; los modelos «fijos» solo se mueven. Un solo paso de deshacer'],['<kbd>N</kbd>','Corte (vista lateral): arrastra A→B sobre el plano (Mayús = ortogonal); el panel inferior «Vista lateral» dibuja el perfil con relieve, manzanas, islas, rampas, escaleras, edificios y cercas (exageración 1×–10×, rueda = zoom, arrastrar = mover, «Perfil de la selección»). No se guarda en el mapa'],['<kbd>Tab</kbd> · botón «Vista: Aérea | Lateral»','Cambia el lienzo entre la vista aérea y la VISTA LATERAL: elevación de TODA el área visible vista desde el Sur (también Norte, Este y Oeste con los botones o ←/→ para girar 90°). Cada columna muestra la envolvente máxima de la altura (relieve, manzanas, islas, rampas, escaleras, edificios y cercas); las capas lejanas se ven más tenues. Exageración 1×–10×, rueda = zoom, arrastrar = mover, F = ajustar, cota al pasar el cursor, «Perspectiva 3D lateral» abre el juego en 3D desde ese lado. Tab o Esc vuelven a la aérea restaurando la vista anterior. (La L sigue siendo Estacionamiento)'],['<kbd>W</kbd>','Escalera en una manzana (se ajusta a la arista; en el rombo de una arista: doble clic = rampa, Mayús + doble clic = escalera)'],['<kbd>A</kbd>','Flecha de pavimento (sobre una calle toma su rumbo y va al carril derecho; Alt = sin auto-orientación)'],['Barrera: manijas de los extremos','Cambian la longitud (módulos de 2,5 m)'],
       ['<kbd>R</kbd>','Barrera'],['<kbd>J</kbd>','Zona jugable'],['<kbd>Z</kbd>','Zona reservada'],['<kbd>P</kbd>','Spawn'],['<kbd>M</kbd>','Regla']]) +
     '<h5>Vista</h5>' + rows([
       ['Rueda','Zoom (centrado en el cursor)'],['Botón central / <kbd>Espacio</kbd>+arrastrar','Mover la vista'],['<kbd>F</kbd>','Encuadrar todo'],['<kbd>G</kbd>','Ajuste a cuadrícula (5 m) on/off'],['Casillas Cuadrícula / Ejes de calles','El eje de cada calle se ve siempre encima'],['Fondo (Mixto / Césped / Tierra)','Terreno de fondo del mundo'],['<kbd>Alt</kbd> (mantener)','Ignorar el ajuste']]) +
@@ -3975,7 +4393,7 @@ function showHelp(){
       ['Clic','Añadir punto / colocar'],['Colocar un objeto','Queda seleccionado con sus manijas y las Propiedades abiertas, y la herramienta vuelve a Seleccionar para moverlo, rotarlo o editarlo de inmediato. Mayús al colocar (o la casilla «Colocar varios») conserva la herramienta para colocar en serie; las polilíneas hacen lo mismo al terminarlas (doble clic / Enter)'],['Doble clic · <kbd>Enter</kbd>','Terminar polilínea / cerrar polígono'],['<kbd>Esc</kbd>','Cancelar'],['Clic derecho','Quitar el último punto'],['Arrastrar (barrera, spawn)','Dirección / rumbo']]) +
     '<h5>Edición</h5>' + rows([
       ['Terreno: rotación','Manija circular sobre el terreno (Mayús = pasos de 15°) o campo «Rotación (°)»: giran los puntos alrededor del centro de su caja y la textura con ellos (`rotacion` solo si ≠ 0). Texturas «Césped de isla» y «Césped de parque» disponibles para terrenos y bloques'],['Casilla «Restricciones de colisión»','Calles, islas y manzanas no se solapan (solo se tocan por el borde, tolerancia 0,05 m; las calles sí se cruzan y las manzanas sí pueden ir unas sobre otras: queda encima la más alta; los edificios con puedeRebasar del catálogo no se restringen) y solo ellas se imantan a bordes y vértices ajenos. Los objetos no rebasan a otros: rampas/escaleras dentro de su manzana; edificios, macetas y cercas ni sobre calles ni a medio camino de una manzana; flechas y estacionamientos dentro de una calle o manzana. Un movimiento inválido se queda en la última posición válida y se pinta en rojo; <kbd>Alt</kbd> al arrastrar las omite'],['Arrastrar vértice','Mover vértice'],['Arrastrar elemento','Mover todo'],['Doble clic en segmento · clic en ● medio','Insertar vértice'],['Clic derecho / <kbd>Supr</kbd> sobre vértice','Borrar vértice'],
-      ['<kbd>X</kbd> · <kbd>Supr</kbd>','Borrar: el vértice bajo el cursor, el vértice seleccionado o el elemento entero'],['Suavizar curva (panel)','Solo activa la spline por los puntos existentes'],['Arrastrar una esquina (suavizado)','Crea puntos de control junto a la esquina poco a poco'],['Clic repetido / <kbd>Alt</kbd>+clic','Alternar entre elementos apilados'],['Traer al frente / Enviar al fondo','Reordena los terrenos'],['Manzana: acera / altura interior','Acera solo hacia adentro; altura interior 0,02 = a nivel de calle'],['Estacionamiento: inclinación','Campo −75…75° (0/30/45/60/Espejo) o el círculo naranja: pasos de 5° (15° con Mayús)'],['Flecha: círculo / rombos','Círculo = rumbo; rombo de la punta = largo; rombo lejano = cantidad (Mayús = paso)'],['Estacionamiento: alto','Más alto = MÁS rayas (cada paso), nunca más gruesas; círculo exterior rota'],['Cerca: longitud','Añade paneles de 2,5 m (postes en cada unión y vértice), no los estira'],['Maceta: círculos de los extremos / exterior','Cambian el largo (el otro extremo queda fijo) / el rumbo'],['Calle seleccionada: rombos y círculos cian','Rombo: mueve el lado (arista de la manzana). Círculo: redondea la esquina; Ctrl+arrastrar la mueve'],['Manzana: alto, textura del suelo y escala','En Propiedades (alto 0,05–1,5 m; por defecto 0,3 m)'],['Edificio: círculo exterior / esquinas','Rotar (Mayús = pasos de 15°) / escalar'],['<kbd>Ctrl</kbd>+<kbd>D</kbd>','Duplicar'],['<kbd>Ctrl</kbd>+<kbd>Z</kbd>','Deshacer'],['<kbd>Ctrl</kbd>+<kbd>Y</kbd> · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>','Rehacer'],
+      ['<kbd>X</kbd> · <kbd>Supr</kbd>','Borrar: el vértice bajo el cursor, el vértice seleccionado o el elemento entero'],['Suavizar curva (panel)','Solo activa la spline por los puntos existentes'],['Arrastrar una esquina (suavizado)','Crea puntos de control junto a la esquina poco a poco'],['Clic repetido / <kbd>Alt</kbd>+clic','Alternar entre elementos apilados'],['<kbd>Mayús</kbd>+clic en un círculo (vértice)','Selecciona hasta 2 vértices (anillo claro con 1 y 2; el tercero sustituye al más antiguo), también de elementos distintos. Clic normal o Esc limpian la selección. Con 2 aparece «Unir vértices» (Propiedades y botón junto al 2.º; atajo Intro, porque J es Zona jugable): contiguos del mismo elemento = se funden en un vértice en el punto medio (respeta mínimos: polígono 3, línea 2; sincroniza aceraLados/bordeLados/radios); extremos de una polilínea = quedan en el mismo punto; no contiguos = avisa; de elementos distintos = ambos van al punto medio (soldados, sin fusionar). Un solo paso de deshacer; respeta las restricciones (Alt las omite)'],['Traer al frente / Enviar al fondo','Reordena los terrenos'],['Manzana: acera / altura interior','Acera solo hacia adentro; altura interior 0,02 = a nivel de calle'],['Estacionamiento: inclinación','Campo −75…75° (0/30/45/60/Espejo) o el círculo naranja: pasos de 5° (15° con Mayús)'],['Flecha: círculo / rombos','Círculo = rumbo; rombo de la punta = largo; rombo lejano = cantidad (Mayús = paso)'],['Estacionamiento: alto','Más alto = MÁS rayas (cada paso), nunca más gruesas; círculo exterior rota'],['Cerca: longitud','Añade paneles de 2,5 m (postes en cada unión y vértice), no los estira'],['Maceta: círculos de los extremos / exterior','Cambian el largo (el otro extremo queda fijo) / el rumbo'],['Calle seleccionada: rombos y círculos cian','Rombo: mueve el lado (arista de la manzana). Círculo: redondea la esquina; Ctrl+arrastrar la mueve'],['Manzana: alto, textura del suelo y escala','En Propiedades (alto 0,05–1,5 m; por defecto 0,3 m)'],['Edificio: círculo exterior / esquinas','Rotar (Mayús = pasos de 15°) / escalar'],['<kbd>Ctrl</kbd>+<kbd>D</kbd>','Duplicar'],['<kbd>Ctrl</kbd>+<kbd>Z</kbd>','Deshacer'],['<kbd>Ctrl</kbd>+<kbd>Y</kbd> · <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>','Rehacer'],
       ['<kbd>Ctrl</kbd>+<kbd>S</kbd>','Exportar JSON: cada exportación SUBE la versión del mapa (versionMapa, p. ej. 0.0.1 → 0.0.2) y el archivo se llama «MAPA VERSION 0.0.2.json». «Probar en el juego» y el autoguardado no la suben'],['<kbd>?</kbd>','Esta ayuda']]) + '</div>',
     [{ label:'Cerrar', cls:'primary' }]);
 }
@@ -3994,7 +4412,7 @@ function validate(){
   const out = [], er = (msg, key) => out.push({ lv:'error', msg, key }), wa = (msg, key) => out.push({ lv:'warn', msg, key });
   const ids = new Set();
   for (const it of items()){
-    const K = KINDS[it.kind], lbl = K.label + ' «' + itemLabel(it) + '»';
+    const K = KINDS[it.kind], lbl = kindLabel(it) + ' «' + itemLabel(it) + '»';
     if (it.id){ if (ids.has(it.kind + it.id)) er(lbl + ': id repetido (' + it.id + ')', it.key); ids.add(it.kind + it.id); }
     if (K.geom !== 'point'){
       const pts = ptsOf(it);
@@ -4175,7 +4593,7 @@ function updateStatus(){
   if (it && it.kind === 'cerca'){ const ci = $('#cerInfo'); if (ci){ const t = cercaInfoText(it.el); if (ci.textContent !== t) ci.textContent = t; } }
   if (it && it.kind === 'edificio'){ const ei = $('#edInfo'); if (ei){ const t = edInfoText(it.el); if (ei.textContent !== t) ei.textContent = t; } }
   if (it && it.kind === 'barrera'){ const bi = $('#barInfo'); if (bi){ const q = barreraInfo(it.el), t = q.n + ' módulos · ' + q.carteles + ' carteles'; if (bi.textContent !== t) bi.textContent = t; } }
-  $('#stSel').textContent = it ? 'Sel.: ' + KINDS[it.kind].label + (it.id ? ' ' + it.id : '') : (snapCfg.grid ? 'Ajuste ' + snapCfg.grid + ' m' : '');
+  $('#stSel').textContent = it ? 'Sel.: ' + kindLabel(it) + (it.id ? ' ' + it.id : '') : (snapCfg.grid ? 'Ajuste ' + snapCfg.grid + ' m' : '');
 }
 
 /* ----------------------------------------------------------------- Arranque */

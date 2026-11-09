@@ -13,3 +13,6 @@ node_modules/
 __pycache__/
 *.tmp
 Thumbs.db
+# perfiles temporales de Chrome de las pruebas
+site/prof_mg*/
+mapa.pre-*.json

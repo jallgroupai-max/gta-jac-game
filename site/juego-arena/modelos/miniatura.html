@@ -3,7 +3,7 @@
 <style>html,body{margin:0;background:transparent;overflow:hidden}canvas{display:block}</style>
 <script type="importmap">{"imports":{"three":"../../juego/vendor/build/three.module.min.js","three/addons/":"../../juego/vendor/jsm/"}}</script>
 <script type="module">
-import * as THREE from "three"; import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import * as THREE from "three"; import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js"; import { ajustaArena } from "./ajuste_arena.js";
 const q = new URLSearchParams(location.search), cx = +q.get("cx"), cz = +q.get("cz"), w = +q.get("w"), d = +q.get("d"), px = +(q.get("px") || 10);
 const W = Math.round(w * px), H = Math.round(d * px);
 const r = new THREE.WebGLRenderer({ alpha: true, antialias: true, preserveDrawingBuffer: true }); r.setSize(W, H); r.setPixelRatio(1); r.setClearColor(0x000000, 0); r.outputColorSpace = THREE.SRGBColorSpace; r.toneMapping = THREE.ACESFilmicToneMapping; document.body.appendChild(r.domElement);
@@ -11,6 +11,6 @@ const sc = new THREE.Scene(); sc.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8
 const cam = new THREE.OrthographicCamera(0, 0, 0, 0, 0.1, 1000);   // x: oeste->este, "arriba" de la imagen = norte (-z)
 cam.position.set(0, 400, 0); cam.up.set(0, 0, -1); cam.lookAt(0, 0, 0);
 cam.left = cx - w / 2; cam.right = cx + w / 2; cam.top = d / 2 - cz; cam.bottom = -(cz + d / 2); cam.updateProjectionMatrix();
-const g = await new GLTFLoader().loadAsync(q.get("m")); g.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.emissive) m.emissiveIntensity = 0.1; }); sc.add(g.scene);
+const g = await new GLTFLoader().loadAsync(q.get("m")); g.scene.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (m.emissive) m.emissiveIntensity = 0.1; }); if (q.get("ajuste") === "arena") ajustaArena(THREE, g.scene); sc.add(g.scene);
 r.render(sc, cam); window.LISTO = true;
 </script>

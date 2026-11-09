@@ -58,6 +58,7 @@ Los campos que falten toman el valor por defecto indicado. Cada elemento lleva u
     "rumbo": 180,                                 // hacia dónde mira el FRENTE del modelo, en grados de brújula (0 = norte, 90 = este, 180 = sur, 270 = oeste); def. 180
     "escala": 1,                                  // multiplicador uniforme (def. 1)
     "ancho": 21.5,                                // solo modelos `modular.libre`: ancho total en m (reemplaza a `modulos`)
+    "color": "#c1272d",                           // solo modelos `colorable` (vehículos): color de la pintura (def.: el original del modelo)
     "modulos": 1,                                 // solo modelos con `modular` en el catálogo: nº de copias pegadas a lo ancho (def. 1)
     "y": 0                                        // altura de la base sobre el suelo en m (def. 0; las manzanas están a 0,15)
   }],
@@ -159,7 +160,8 @@ Los campos que falten toman el valor por defecto indicado. Cada elemento lleva u
     "id": "a1", "nombre": "Isla Av. 4",
     "puntos": [[0,0],[100,0],[100,10],[0,10]],    // polígono
     "alto": 0.4,                                  // m; 0 = al ras del suelo, sin bordillo (parque)  (def. 0)
-    "superficie": "cesped",                       // "cesped" | "concreto" | "piedras" | "piedras_cafe"  (def. "cesped")
+    "superficie": "cesped",                       // textura: "cesped" (césped claro de isla/parque) | "cesped_oscuro" (el césped PBR de los terrenos) | "tierra" | "asfalto" | "adoquin" | "concreto" | "cemento" | "piedras" | "piedras_cafe" | "cesped_isla" | "cesped_parque"  (def. "cesped")
+    "escala": 1,                                  // opcional: multiplicador del tamaño de la textura (def. 1; el editor no lo guarda si es 1)
     "borde": true,                                // bordillo/banda de concreto amarillo (solo si alto>0)  (def. true)
     "arboles": 13,                                // separación media entre árboles en m; 0 = sin árboles (def. 0)
     "tipos": "mixto",                             // "mixto" | "frondosos" | "palmas"  (def. "mixto")
@@ -194,6 +196,7 @@ Los campos que falten toman el valor por defecto indicado. Cada elemento lleva u
 
 Notas
 - `hd`: dirección de avance = `(sin hd, cos hd)` en (x, z).
+- Herramientas del editor «Recortar mapa» y «Tamaño del mapa» (teclas 2 y 3): NO añaden campos al formato. Recortar quita lo que queda fuera de un rectángulo y recorta polígonos/líneas (`zonaJugable`, `zonaReservada`, `spawn` y `relieve` incluidos); «Tamaño → Escalar contenido» multiplica por el factor las posiciones y las dimensiones horizontales (`ancho`, `izq`/`der`, `radios`, `aceraAncho`, `largo`…, `escala` de los modelos no `fijo`) y por tanto cambia `relieve.celda` (la rejilla se desplaza en celdas enteras). Las alturas (`alto`, `y`…) y los grosores de pintura no se escalan.
 - Las calles con `extra:true` se dibujan con el mismo asfalto, pero no producen marcas, farolas, ni cortan separadores por "cruce"; sí cortan el separador central de otra calle si lo cubren (así se abren los huecos de giro).
 - El juego carga `mapa.json` (misma carpeta que `index.html`). Con `?mapa=local` carga en cambio `localStorage["jacMapa"]` (lo escribe el editor con "Probar en el juego").
 
@@ -252,7 +255,7 @@ function redondear(pts, radios, cerrado) {
   cálculo que `redondear`: región polígono [vértice, T1, curva…, T2].
 
 ### Categorías y niveles de detalle del catálogo
-Cada modelo lleva `categoria` (id de `categorias[]`; todos los edificios están en la categoría `"edificios"`, nombre "Edificios") para agruparlos en el editor. Opcionales: `modular: {eje:"x", paso}` (modelo MODULAR: al ensanchar el edificio NO se escala, se añaden copias idénticas pegadas a lo ancho cada `paso` m; en el edificio del mapa el campo `modulos` (entero ≥1, def. 1) dice cuántas; `x,z` = centro de toda la hilera; la huella total = `ancho`·`modulos`); `modular.libre: true` + `modular.anchoMin` (m): el ancho es CONTINUO y puede reducirse: el edificio del mapa usa `ancho` (m, def. paso·modulos) en vez de `modulos`; se ponen n = ceil(ancho/paso) copias y cada una se estira/comprime en X por ancho/(n·paso) (así se puede ir por debajo de un módulo, hasta `anchoMin`); `puedeRebasar: true` (el edificio puede solaparse/rebasar los límites de otros elementos, p. ej. invadir calle o acera; el editor no debe bloquearlo ni marcarlo en conflicto); `lods`: `[{archivo, desde}]` (cambio de nivel de detalle por distancia a la cámara en m,
+Cada modelo lleva `categoria` (id de `categorias[]`; todos los edificios están en la categoría `"edificios"`, nombre "Edificios") para agruparlos en el editor. Opcionales: `modular: {eje:"x", paso}` (modelo MODULAR: al ensanchar el edificio NO se escala, se añaden copias idénticas pegadas a lo ancho cada `paso` m; en el edificio del mapa el campo `modulos` (entero ≥1, def. 1) dice cuántas; `x,z` = centro de toda la hilera; la huella total = `ancho`·`modulos`); `modular.libre: true` + `modular.anchoMin` (m): el ancho es CONTINUO y puede reducirse: el edificio del mapa usa `ancho` (m, def. paso·modulos) en vez de `modulos`; se ponen n = ceil(ancho/paso) copias y cada una se estira/comprime en X por ancho/(n·paso) (así se puede ir por debajo de un módulo, hasta `anchoMin`); `fijo: true` (el modelo NO se escala: se ignora `escala`; p. ej. vehículos); `colorable: {materiales:[nombres de material de pintura], defecto, colores:[muestras]}` (el edificio del mapa puede llevar `color: "#rrggbb"`, que tiñe esos materiales); `puedeRebasar: true` (el edificio puede solaparse/rebasar los límites de otros elementos, p. ej. invadir calle o acera; el editor no debe bloquearlo ni marcarlo en conflicto); `lods`: `[{archivo, desde}]` (cambio de nivel de detalle por distancia a la cámara en m,
 el de `desde: 0` es el más detallado); `colision`: archivo GLB de colisión (el juego lo rasteriza en planta cada 1 m: solo cuenta lo que esté bajo el modelo de colisión; si falta, se usa la huella rectangular);
 `emisivoSiempre`: nombres de materiales cuyo emisivo NO se apaga de día (luces interiores).
 

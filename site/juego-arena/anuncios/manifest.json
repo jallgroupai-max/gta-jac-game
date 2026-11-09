@@ -1,0 +1,212 @@
+[
+  {
+    "size": "512x276",
+    "variant": 1,
+    "brand": "Agropecuaria Paraguana",
+    "file": "512x276/01_agropecuaria_paraguana_512x276.png"
+  },
+  {
+    "size": "512x276",
+    "variant": 2,
+    "brand": "Agropecuaria San Marino",
+    "file": "512x276/02_agropecuaria_san_marino_512x276.png"
+  },
+  {
+    "size": "512x276",
+    "variant": 3,
+    "brand": "Barquisimeto Suites",
+    "file": "512x276/03_barquisimeto_suites_512x276.png"
+  },
+  {
+    "size": "512x276",
+    "variant": 4,
+    "brand": "Plan Travesía",
+    "file": "512x276/04_plan_travesia_512x276.png"
+  },
+  {
+    "size": "512x276",
+    "variant": 5,
+    "brand": "Calidad BEL",
+    "file": "512x276/05_calidad_bel_512x276.png"
+  },
+  {
+    "size": "512x176",
+    "variant": 1,
+    "brand": "Fundación BEL",
+    "file": "512x176/01_fundacion_bel_512x176.png"
+  },
+  {
+    "size": "512x176",
+    "variant": 2,
+    "brand": "BEL Inmobiliaria",
+    "file": "512x176/02_bel_inmobiliaria_512x176.png"
+  },
+  {
+    "size": "512x176",
+    "variant": 3,
+    "brand": "Agropecuaria Paraguana",
+    "file": "512x176/03_agropecuaria_paraguana_512x176.png"
+  },
+  {
+    "size": "512x176",
+    "variant": 4,
+    "brand": "BEL Industrial",
+    "file": "512x176/04_bel_industrial_512x176.png"
+  },
+  {
+    "size": "512x176",
+    "variant": 5,
+    "brand": "Agropecuaria San Marino",
+    "file": "512x176/05_agropecuaria_san_marino_512x176.png"
+  },
+  {
+    "size": "512x165",
+    "variant": 1,
+    "brand": "BEL Industrial",
+    "file": "512x165/01_bel_industrial_512x165.png"
+  },
+  {
+    "size": "512x165",
+    "variant": 2,
+    "brand": "BEL Inmobiliaria",
+    "file": "512x165/02_bel_inmobiliaria_512x165.png"
+  },
+  {
+    "size": "512x165",
+    "variant": 3,
+    "brand": "Facilito JAC",
+    "file": "512x165/03_facilito_jac_512x165.png"
+  },
+  {
+    "size": "512x165",
+    "variant": 4,
+    "brand": "Fundación BEL",
+    "file": "512x165/04_fundacion_bel_512x165.png"
+  },
+  {
+    "size": "512x165",
+    "variant": 5,
+    "brand": "Barquisimeto Suites",
+    "file": "512x165/05_barquisimeto_suites_512x165.png"
+  },
+  {
+    "size": "512x155",
+    "variant": 1,
+    "brand": "Auto Partes Lara",
+    "file": "512x155/01_auto_partes_lara_512x155.png"
+  },
+  {
+    "size": "512x155",
+    "variant": 2,
+    "brand": "Credi JAC",
+    "file": "512x155/02_credi_jac_512x155.png"
+  },
+  {
+    "size": "512x155",
+    "variant": 3,
+    "brand": "Plan Travesía",
+    "file": "512x155/03_plan_travesia_512x155.png"
+  },
+  {
+    "size": "512x155",
+    "variant": 4,
+    "brand": "BEL",
+    "file": "512x155/04_bel_512x155.png"
+  },
+  {
+    "size": "512x155",
+    "variant": 5,
+    "brand": "Calidad BEL",
+    "file": "512x155/05_calidad_bel_512x155.png"
+  },
+  {
+    "size": "512x107",
+    "variant": 1,
+    "brand": "BEL",
+    "file": "512x107/01_bel_512x107.png"
+  },
+  {
+    "size": "512x107",
+    "variant": 2,
+    "brand": "BEL Industrial",
+    "file": "512x107/02_bel_industrial_512x107.png"
+  },
+  {
+    "size": "512x107",
+    "variant": 3,
+    "brand": "Fundación BEL",
+    "file": "512x107/03_fundacion_bel_512x107.png"
+  },
+  {
+    "size": "512x107",
+    "variant": 4,
+    "brand": "Auto Partes Lara",
+    "file": "512x107/04_auto_partes_lara_512x107.png"
+  },
+  {
+    "size": "512x107",
+    "variant": 5,
+    "brand": "Facilito JAC",
+    "file": "512x107/05_facilito_jac_512x107.png"
+  },
+  {
+    "size": "512x128",
+    "variant": 1,
+    "brand": "Barquisimeto Suites",
+    "file": "512x128/01_barquisimeto_suites_512x128.png"
+  },
+  {
+    "size": "512x128",
+    "variant": 2,
+    "brand": "Fundación BEL",
+    "file": "512x128/02_fundacion_bel_512x128.png"
+  },
+  {
+    "size": "512x128",
+    "variant": 3,
+    "brand": "Agropecuaria Paraguana",
+    "file": "512x128/03_agropecuaria_paraguana_512x128.png"
+  },
+  {
+    "size": "512x128",
+    "variant": 4,
+    "brand": "Agropecuaria San Marino",
+    "file": "512x128/04_agropecuaria_san_marino_512x128.png"
+  },
+  {
+    "size": "512x128",
+    "variant": 5,
+    "brand": "BEL Inmobiliaria",
+    "file": "512x128/05_bel_inmobiliaria_512x128.png"
+  },
+  {
+    "size": "1024x59",
+    "variant": 1,
+    "brand": "BEL Corporativo",
+    "file": "1024x59/01_bel_corporativo_1024x59.png"
+  },
+  {
+    "size": "1024x59",
+    "variant": 2,
+    "brand": "BEL Industrial",
+    "file": "1024x59/02_bel_industrial_1024x59.png"
+  },
+  {
+    "size": "1024x59",
+    "variant": 3,
+    "brand": "Credi JAC",
+    "file": "1024x59/03_credi_jac_1024x59.png"
+  },
+  {
+    "size": "1024x59",
+    "variant": 4,
+    "brand": "Auto Partes Lara",
+    "file": "1024x59/04_auto_partes_lara_1024x59.png"
+  },
+  {
+    "size": "1024x59",
+    "variant": 5,
+    "brand": "Plan Travesía",
+    "file": "1024x59/05_plan_travesia_1024x59.png"
+  }
+]

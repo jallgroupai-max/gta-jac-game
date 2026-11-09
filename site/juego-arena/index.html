@@ -44,6 +44,13 @@
   #hora { left: 24px; top: 100px; padding: 5px 14px; border-radius: 18px; background: rgba(10,12,16,.5); backdrop-filter: blur(8px); font-size: 12px; letter-spacing: .12em; }
   #aviso { left: 50%; top: 22px; transform: translateX(-50%); padding: 8px 18px; border-radius: 20px; background: rgba(10,12,16,.6); backdrop-filter: blur(8px); font-size: 13px; letter-spacing: .08em; opacity: 0; transition: opacity .3s; }
   #aviso.ver { opacity: 1; }
+  .ind { left: 0; top: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 14px 9px; border-radius: 16px; background: rgba(10,12,16,.62); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; will-change: transform, opacity; }
+  .ind::after { content: ""; position: absolute; left: 50%; top: 100%; width: 16px; height: 7px; margin-left: -8px; background: rgba(10,12,16,.62); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+  .ind img { width: 118px; height: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
+  .ind .tecla { display: flex; align-items: center; gap: 7px; margin-top: 2px; padding: 3px 10px 3px 4px; border-radius: 10px; background: rgba(255,255,255,.12); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; max-height: 0; opacity: 0; overflow: hidden; padding-top: 0; padding-bottom: 0; transition: max-height .2s, opacity .2s, padding .2s; }
+  .ind .tecla.on { max-height: 34px; opacity: 1; padding-top: 3px; padding-bottom: 3px; }
+  .ind b { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+  @media (max-width: 800px) { .ind { padding: 6px 10px 7px; border-radius: 13px; } .ind img { width: 92px; } .ind b { font-size: 11px; letter-spacing: .1em; } }
   #menu { position: fixed; inset: 0; z-index: 30; display: none; place-content: center; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); }
   #menu.ver { display: grid; }
   #menu .caja { min-width: 340px; max-width: 440px; padding: 26px 30px; border-radius: 14px; background: rgba(18,20,26,.92); box-shadow: 0 10px 40px rgba(0,0,0,.5); text-align: left; }
@@ -94,6 +101,7 @@ import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
 import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";   // edificios con EXT_meshopt_compression
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
+import { ajustaArena } from "./modelos/ajuste_arena.js";   // ajuste del Arena Pro a su ficha técnica (4,34 x 1,79 x 1,68 m)
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeGeometries, mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -145,6 +153,7 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;      // en r183 PCFSoftShadowMap está obsoleto y equivale a esta (filtrado PCF suave)
 renderer.toneMapping = THREE.NeutralToneMapping;     // Khronos PBR Neutral: conserva el blanco perla sin quemarlo ni aplanarlo (lo aplica OutputPass)
 renderer.toneMappingExposure = 1.0;
+const kt = new KTX2Loader().setTranscoderPath(CDN + "basis/").detectSupport(renderer);   // texturas KTX2 (Basis) de los vehículos
 const ANISO = renderer.capabilities.getMaxAnisotropy();
 
 const scene = new THREE.Scene();
@@ -153,7 +162,7 @@ const pmrem = new THREE.PMREMGenerator(renderer);
 const envProv = pmrem.fromScene(new RoomEnvironment(), 0.04);
 scene.environment = envProv.texture;             // provisional hasta que cargue el HDR
 preTarea("entorno", 6);
-new HDRLoader().load("./entorno/wide_street_01_2k.hdr", (t) => {
+new HDRLoader().load("./entorno/wide_street_01_1k.hdr", (t) => {
   t.mapping = THREE.EquirectangularReflectionMapping;
   scene.environment = pmrem.fromEquirectangular(t).texture; t.dispose(); envProv.dispose(); pmrem.dispose();   // libera el entorno provisional y los shaders del PMREM
   preAv("entorno", 1);
@@ -302,7 +311,9 @@ const ck = (a, b) => (a + 64) * 256 + (b + 64);
 function addObst(x0, x1, z0, z1, soloVeh) {   // soloVeh: la caja solo bloquea al carro (el peatón la sube)
   const b = [x0, x1, z0, z1, soloVeh];
   for (let a = Math.floor(x0 / CELL); a <= Math.floor(x1 / CELL); a++) for (let c = Math.floor(z0 / CELL); c <= Math.floor(z1 / CELL); c++) (obst.get(ck(a, c)) ?? obst.set(ck(a, c), []).get(ck(a, c))).push(b);
+  return b;
 }
+function quitaObst(b) { for (const l of obst.values()) { const i = l.indexOf(b); if (i >= 0) l.splice(i, 1); } }   // quita una caja de colisión (p. ej. el vehículo del mapa que el jugador se lleva)
 const _cerca = [];                               // se reutiliza en cada llamada (sin arrays nuevos por cuadro)
 function cercanos(cx, cz) {
   _cerca.length = 0;
@@ -490,7 +501,11 @@ const SPAWN_MAPA = MAPA.spawn ?? { x: 0, z: 0, hd: 0 };
 // texturas PBR de Poly Haven (CC0): color sRGB + normal OpenGL + rugosidad (o ARM), repetidas por coordenadas de mundo
 preTarea("texturas", 12); const mgrTex = new THREE.LoadingManager(); mgrTex.onProgress = (u, l, t) => preAv("texturas", t ? l / t * 0.98 : 0); mgrTex.onLoad = () => preAv("texturas", 1);
 const tl = new THREE.TextureLoader(mgrTex), ANISO_MAT = Math.min(ANISO, HD ? 16 : 8), HD_PH = new Set(["asphalt_pit_lane", "grass_ground", "dirt_floor"]);   // texturas Poly Haven con versión 2K
-const texPH = (nombre, f, srgb) => { const t = tl.load(`./texturas/${nombre}_${f}_${HD && HD_PH.has(nombre) ? "2k" : "1k"}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO_MAT; t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; return t; };
+// Texturas sueltas en KTX2 (Basis): quedan comprimidas en la GPU (~4-8x menos memoria). El .ktx2 está junto al .jpg (volteado en vertical, como flipY del jpg); el objeto se crea vacío y se rellena al llegar, así los materiales no cambian.
+const kt2 = kt;   // un único KTX2Loader (varios generan avisos de rendimiento); la carga de texturas sueltas se cuenta aparte con mgrTex (itemStart/itemEnd)
+const texK = (url, srgb) => { const t = new THREE.CompressedTexture([], 4, 4); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO_MAT; t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; t.generateMipmaps = false; t.minFilter = THREE.LinearMipmapLinearFilter; t.magFilter = THREE.LinearFilter;
+  mgrTex.itemStart(url); kt2.load(url.replace(/\.jpg$/i, ".ktx2"), (k) => { mgrTex.itemEnd(url);  t.mipmaps = k.mipmaps; t.image = k.image; t.format = k.format; t.type = k.type; t.colorSpace = k.colorSpace; t.onUpdate = () => { t.mipmaps = []; t.onUpdate = null; }; t.needsUpdate = true; }, undefined, (e) => { mgrTex.itemEnd(url); console.warn("KTX2 no cargó", url, e); }); return t; };
+const texPH = (nombre, f, srgb) => texK(`./texturas/${nombre}_${f}_${HD && HD_PH.has(nombre) ? "2k" : "1k"}.jpg`, srgb);
 const matAsfaltoTex = (nombre) => new THREE.MeshStandardMaterial({ map: texPH(nombre, "diff", true), normalMap: texPH(nombre, "nor_gl", false), roughnessMap: texPH(nombre, "rough", false), roughness: 1, metalness: 0 });
 const ESC_VIA = 1 / 2;                           // parche real de asphalt_pit_lane: 2 m
 
@@ -660,6 +675,24 @@ const matCharco = (() => {
   return new THREE.MeshBasicMaterial({ map: tex(c, true, false), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, fog: false });
 })();
 let charcos = [];                                // InstancedMesh de los charcos de luz (uno por tesela)
+// ── luz blanca difusa RECTANGULAR (charcos de los postes y brillo de las pantallas LED) y rayas de luz junto a la luminaria ──
+const TEX_RECT = (() => {   // alfa = rectángulo con bordes suaves (no circular)
+  const c = cv(128), g = c.getContext("2d"), im = g.createImageData(128, 128), sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) { const u = Math.abs(x / 63.5 - 1), v = Math.abs(y / 63.5 - 1), a = (1 - sm(0.35, 1.0, u)) * (1 - sm(0.35, 1.0, v)), o = (y * 128 + x) * 4; im.data[o] = im.data[o + 1] = im.data[o + 2] = 255; im.data[o + 3] = Math.round(a * 255); }
+  g.putImageData(im, 0, 0); return tex(c, true, false);
+})();
+const TEX_RAYAS = (() => {  // rayas verticales finas que se apagan hacia abajo y hacia los lados
+  const w = 128, h = 256, c = cv(w, h), g = c.getContext("2d"), im = g.createImageData(w, h), R = mulberry32(7), raya = new Float32Array(w);
+  for (let i = 0; i < 46; i++) { const x = Math.floor(R() * w), ancho = 1 + Math.floor(R() * 2), a = 0.35 + R() * 0.65; for (let d = 0; d < ancho; d++) raya[Math.min(w - 1, x + d)] = Math.max(raya[Math.min(w - 1, x + d)], a); }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = raya[x] * Math.pow(1 - y / h, 1.6) * Math.pow(1 - Math.abs(2 * x / w - 1), 0.6), o = (y * w + x) * 4; im.data[o] = im.data[o + 1] = im.data[o + 2] = 255; im.data[o + 3] = Math.round(a * 255); }
+  g.putImageData(im, 0, 0); return tex(c, true, false);
+})();
+const matLuzRect = (color = 0xffffff) => new THREE.MeshBasicMaterial({ map: TEX_RECT, color, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, fog: false });
+const matHaloCartel = matHalo(0xffe6c0, 0.35, 1, [90, 380]);   // resplandor de los carteles grandes
+const matConoBlanco = matCono(0xf6f2ea, 0.2, [40, 120], 1.3, 1.5), matHaloBlanco = matHalo(0xf4f8ff, 1.3, 1.4, [50, 300]);   // cono y halo de las primeras farolas, en blanco
+// charco de los postes LED: ilumina MULTIPLICANDO (suelo x (1 + luz)) en vez de sumar blanco, así el terreno conserva su textura iluminado
+const matCharcoBlanco = Object.assign(matLuzRect(0xf4f8ff), { blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.DstColorFactor, blendDst: THREE.OneFactor, premultipliedAlpha: true }), matRayas = new THREE.MeshBasicMaterial({ map: TEX_RAYAS, color: 0xf4f8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, fog: false, side: THREE.DoubleSide });
+
 {
   // metal pintado con óxido (Poly Haven green_metal_rust, parche de 1 m); el mapa ARM da la rugosidad (G) y la metalicidad (B)
   const arm = texPH("green_metal_rust", "arm", false);
@@ -689,7 +722,7 @@ let charcos = [];                                // InstancedMesh de los charcos
 // Fachadas fotográficas de ambientCG (CC0) sobre cajas: el UV se calcula para que las ventanas encajen en columnas enteras y los pisos coincidan con las filas
 // de la textura (alto de piso FH). Toda la geometría de cada tesela y material se funde en una sola malla (ver `cubo`): ~2000 edificios = unas pocas decenas de draw calls.
 const EJE_Y = new THREE.Vector3(0, 1, 0), FH = 3.4, SET = 3.6;                       // alto de piso; retranqueo del edificio respecto al borde de la cuadra (ancho de banqueta)
-const texED = (n, f, srgb, rep) => { const t = tl.load(`./edificios/${HD ? "hd/" : ""}${n}_${f}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO_MAT; t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; if (rep) t.repeat.set(rep, rep); return t; };
+const texED = (n, f, srgb, rep) => { const t = texK(`./edificios/${HD ? "hd/" : ""}${n}_${f}.jpg`, srgb); if (rep) t.repeat.set(rep, rep); return t; };
 // nc x nr = ventanas por tesela; ox, oy = fase (px de 1024) donde cae el límite entre celdas, medida sobre la propia textura
 const FACH = [
   { n: "Facade018A", nc: 6, nr: 6, ox: 63, oy: 63, rug: 0.8, met: 0 }, { n: "Facade020A", nc: 6, nr: 6, ox: 64, oy: 64, rug: 0.8, met: 0 }, { n: "Facade019A", nc: 6, nr: 6, ox: 63, oy: 58, rug: 0.7, met: 0.05 },
@@ -715,7 +748,7 @@ const matTienda = (() => {                       // vitrina: cristal con divisio
 })();
 const matEquipo = new THREE.MeshStandardMaterial({ color: 0x8c9096, roughness: 0.7, metalness: 0.4 });
 const matArbol = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9 });
-const texArb = (n, f, srgb) => { const t = tl.load(`./arboles/${HD ? "hd/" : ""}${n}_${f}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = ANISO_MAT; t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; return t; };
+const texArb = (n, f, srgb) => texK(`./arboles/${HD ? "hd/" : ""}${n}_${f}.jpg`, srgb);
 const matCorteza = new THREE.MeshStandardMaterial({ map: texArb("corteza", "c", true), normalMap: texArb("corteza", "n", false), vertexColors: true, roughness: 0.95 });
 const matCortezaPalma = new THREE.MeshStandardMaterial({ map: texArb("palma", "c", true), normalMap: texArb("palma", "n", false), vertexColors: true, roughness: 0.9 });
 const nochePorMat = [...matsFach, matTienda];   // materiales con luz propia de noche
@@ -939,8 +972,8 @@ const rnd2 = mulberry32(1234);
 for (const a of MAPA.areas ?? []) {
   const pts = a.puntos, alto = a.alto ?? 0;
   if (!pts || pts.length < 3) continue;
-  const concreto = a.superficie === "concreto", piedra = a.superficie === "piedras" || a.superficie === "piedras_cafe", borde = alto > 0 && a.borde !== false;
-  const matSup = () => piedra ? new THREE.MeshStandardMaterial({ map: texPH(a.superficie, "diff", true), normalMap: texPH(a.superficie, "nor_gl", false), roughnessMap: texPH(a.superficie, "rough", false), roughness: 1 }) : concreto ? matBanqueta.clone() : matCesped(alto > 0 ? 0xb8d09a : 0x9fd678), esc = piedra ? 1 / 1.5 : concreto ? 1 / 1.6 : 1 / 2.51;
+  const borde = alto > 0 && a.borde !== false, sup = a.superficie ?? "cesped", espec = sup !== "cesped", tipoSup = sup === "cesped_oscuro" ? "cesped" : sup;   // "cesped" = el césped claro de isla/parque; el resto, los mismos suelos que los terrenos
+  const matSup = () => espec ? matSuelo(tipoSup).clone() : matCesped(alto > 0 ? 0xb8d09a : 0x9fd678), esc = espec ? 1 / ((SUELOS[tipoSup]?.[1] ?? ESC_SUELO[tipoSup] ?? 1.6) * (a.escala ?? 1)) : 1 / 2.51;
   if (alto > 0) losa(pts, matSup(), esc, alto, borde ? matCemento2 : matBordillo2, borde ? 0.6 : 0);
   else {
     const mat = matSup(); mat.polygonOffset = true; mat.polygonOffsetFactor = 2; mat.polygonOffsetUnits = 1;
@@ -982,10 +1015,12 @@ const SEPS = [];   // tramos transitables: { ax, az, bx, bz, r (semiancho), h } 
   }
   fundir(piezas, matCemento, true);
 }
+const ISLAS = (MAPA.areas ?? []).filter((a) => a.alto > 0 && a.puntos?.length >= 3).map((a) => ({ p: a.puntos, alto: a.alto, mnx: Math.min(...a.puntos.map((q) => q[0])), mxx: Math.max(...a.puntos.map((q) => q[0])), mnz: Math.min(...a.puntos.map((q) => q[1])), mxz: Math.max(...a.puntos.map((q) => q[1])) }));
 const sueloBase = (x, z) => {
   for (const r of RAMPAS) if (dentroPoly(r.poly, x, z)) return 0.02 + (r.H - 0.02) * Math.min(1, Math.max(0, ((x - r.x) * r.d[0] + (z - r.z) * r.d[1]) / r.L));   // entrada: altura lineal de la calle (borde) al terreno (a `largo` m dentro)
   for (const r of ESCALERAS) if (dentroPoly(r.poly, x, z)) return 0.02 + (r.H - 0.02) * (Math.min(r.n - 1, Math.max(0, Math.floor(((x - r.x) * r.d[0] + (z - r.z) * r.d[1]) / (r.L / r.n)))) + 1) / r.n;   // escalera: altura por peldaño
   let hb = -1; for (let i = 0; i < BLOQUES.length; i++) if (dentroPoly(BLOQUES[i], x, z)) { const v = INNER[i] && dentroPoly(INNER[i], x, z) ? ALTO_INT[i] : BLOQUE_ALTO[i]; if (v > hb) hb = v; }   // manzanas apiladas: manda la más alta
+  for (const a of ISLAS) if (a.mnx <= x && x <= a.mxx && a.mnz <= z && z <= a.mxz && dentroPoly(a.p, x, z) && a.alto > hb) hb = a.alto;   // islas elevadas: el terreno de su interior es sólido (el carro sube a ella, el peatón sube si no pasa de 0,5 m)
   return hb >= 0 ? hb : alturaTerreno(x, z);
 };
 const suelo = (x, z) => {                       // altura del suelo + resalto de los separadores bajos (se cruzan saltando)
@@ -1235,10 +1270,34 @@ const ANUNCIOS = [
   { fondo: ["#b71c1c", "#ff5252"], t1: "NUEVO", t2: "COMBO FAMILIAR", t3: "Hamburguesa · papas · bebida", forma: "barras", tinta: "#fff3e0" },
   { fondo: ["#111111", "#444444"], t1: "JAC", t2: "ARENA PRO", t3: "Barquisimeto · Lara", forma: "diagonal", tinta: "#ffd54f" },
 ];
+// Anuncios publicitarios (anuncios/<ancho>x<alto>/1..5.png): cada pantalla usa las 5 imágenes de su medida (o la de proporción más cercana) y las cambia al azar con una transición
+// de deslizamiento (la imagen vieja sale y la nueva entra por el lado contrario, en una dirección al azar). Las cintas (1024x59) se desplazan sin parar. Si aún no cargaron, se ve el anuncio de texto.
+const ANUN_TAM = ["512x276", "512x176", "512x165", "512x155", "512x107", "512x128", "1024x59"], ANUN_IMG = {};
+const anunImgs = (w, h) => {
+  let k = w + "x" + h;
+  if (!ANUN_TAM.includes(k)) { let m = 1e9; for (const t of ANUN_TAM) { const [a, b] = t.split("x").map(Number), d = Math.abs(Math.log(a / b / (w / h))); if (d < m) { m = d; k = t; } } }
+  return ANUN_IMG[k] ??= Array.from({ length: 5 }, (_, i) => { const o = { img: new Image(), ok: false }; o.img.onload = () => { o.ok = true; }; o.img.src = "./anuncios/" + k + "/" + (i + 1) + ".png"; return o; });
+};
+const suavizaBlancos = (ctx, w, h) => { ctx.fillStyle = "rgba(24,28,34,0.10)"; ctx.fillRect(0, 0, w, h); };   // 255 -> ~232: evita el blanco puro que revienta de noche
+const dibujaImg = (ctx, im, w, h, dx, dy) => { const s = Math.max(w / im.width, h / im.height), iw = im.width * s, ih = im.height * s; ctx.drawImage(im, dx + (w - iw) / 2, dy + (h - ih) / 2, iw, ih); };
 const LED = {
   lista: [],
+  paso(e, now) {   // anuncios de imagen: cambia al azar cada 5-10 s con deslizamiento (0,9 s); devuelve false si aún no hay imágenes
+    const L = anunImgs(e.w, e.h).filter((a) => a.ok); if (!L.length) return false;
+    const st = e.sl ??= { i: Math.floor(Math.random() * L.length), from: -1, t0: 0, dx: 1, dy: 0, prox: now + 1500 + Math.random() * 6000, pintado: false }, { ctx, w, h } = e;
+    if (st.i >= L.length) st.i = 0;
+    if (!st.pintado) { st.pintado = true; dibujaImg(ctx, L[st.i].img, w, h, 0, 0); suavizaBlancos(ctx, w, h); e.tex.needsUpdate = true; }
+    if (st.from < 0 && now > st.prox) { st.from = st.i; do { st.i = Math.floor(Math.random() * L.length); } while (L.length > 1 && st.i === st.from); st.t0 = now; const d = [[1, 0], [-1, 0], [0, 1], [0, -1]][Math.floor(Math.random() * (w / h > 3.5 ? 2 : 4))]; st.dx = d[0]; st.dy = d[1]; }
+    if (st.from >= 0) {
+      const u = Math.min(1, (now - st.t0) / 900), t = u * u * (3 - 2 * u), ox = st.dx * w, oy = st.dy * h; ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+      dibujaImg(ctx, L[st.from % L.length].img, w, h, -ox * t, -oy * t); dibujaImg(ctx, L[st.i].img, w, h, ox * (1 - t), oy * (1 - t)); suavizaBlancos(ctx, w, h); e.tex.needsUpdate = true;
+      if (u >= 1) { st.from = -1; st.prox = now + 5000 + Math.random() * 5000; e.k = st.i; }
+    }
+    return true;
+  },
   dibuja(e, k) {
     if (e.cinta) { LED.cinta(e, performance.now()); return; }
+    if (LED.paso(e, performance.now())) return;
     const a = ANUNCIOS[k % ANUNCIOS.length], { ctx, w, h } = e, g = ctx.createLinearGradient(0, 0, w, h); g.addColorStop(0, a.fondo[0]); g.addColorStop(1, a.fondo[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     ctx.globalAlpha = 0.18; ctx.fillStyle = "#fff";
     if (a.forma === "circulo") { ctx.beginPath(); ctx.arc(w * 0.86, h * 0.5, h * 0.62, 0, 6.3); ctx.fill(); }
@@ -1249,25 +1308,36 @@ const LED = {
     const f = (px, peso) => `${peso} ${Math.round(px)}px Archivo, Arial, sans-serif`, ajusta = (txt, px, peso) => { let q = px; ctx.font = f(q, peso); while (q > 6 && ctx.measureText(txt).width > ancho) { q *= 0.93; ctx.font = f(q, peso); } return q; };   // reduce el tamaño hasta que el texto quepa
     ajusta(a.t1, h * 0.30, 800); ctx.fillText(a.t1, mx, h * 0.28); ajusta(a.t2, h * 0.24, 800); ctx.fillText(a.t2, mx, h * 0.55);
     ctx.globalAlpha = 0.85; ajusta(a.t3, h * 0.11, 500); ctx.fillText(a.t3, mx, h * 0.82); ctx.globalAlpha = 1;
-    e.tex.needsUpdate = true;
+    e.tex.needsUpdate = true; LED.tinte(e);
   },
   registra(mt, dim, op = {}) {   // convierte el material en pantalla: textura de canvas (color y emisión) y anuncio inicial distinto según el desfase
     if (mt.userData.led) return; const [w, h] = dim, c = document.createElement("canvas"); c.width = w; c.height = h;
     const tex = new THREE.CanvasTexture(c); tex.flipY = op.flipY ?? false; tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = Math.min(ANISO, 8);   // flipY=false: convención de glTF
     const e = { mt, tex, ctx: c.getContext("2d"), w, h, k: LED.lista.length, prox: 0, cinta: !!op.cinta, ult: 0 }; mt.userData.led = e;
-    mt.map = tex; mt.emissiveMap = tex; mt.emissive.set(1, 1, 1); mt.color.set(1, 1, 1); mt.needsUpdate = true; LED.dibuja(e, e.k); LED.lista.push(e);
+    mt.map = tex; mt.emissiveMap = tex; mt.emissive.set(0.9, 0.93, 0.97); mt.color.set(1, 1, 1); mt.needsUpdate = true; LED.dibuja(e, e.k); LED.lista.push(e);
   },
-  cinta(e, now) {   // pantalla tipo estadio (muy ancha): texto que se desplaza de derecha a izquierda sobre el color del anuncio actual
+  cinta(e, now) {   // pantalla tipo estadio (muy ancha): las imágenes de la cinta (1024x59) se desplazan sin parar de derecha a izquierda; sin imágenes, texto
+    const L = anunImgs(e.w, e.h).filter((a) => a.ok);
+    if (L.length) { const st = e.sl ??= { off: Math.random() * 1000, last: now, orden: L.slice().sort(() => Math.random() - 0.5) }, { ctx, w, h } = e; st.off += Math.min(0.1, (now - st.last) / 1000) * 55; st.last = now;
+      const n = st.orden.length, base = Math.floor(st.off / w), x0 = -(st.off % w); for (let j = 0; j < 2; j++) dibujaImg(ctx, st.orden[(base + j) % n].img, w, h, x0 + j * w, 0); suavizaBlancos(ctx, w, h); e.tex.needsUpdate = true; return; }
     const { ctx, w, h } = e, a = ANUNCIOS[e.k % ANUNCIOS.length], g = ctx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, a.fondo[0]); g.addColorStop(1, a.fondo[1]); ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = a.tinta; ctx.textBaseline = "middle"; ctx.font = `800 ${Math.round(h * 0.62)}px Archivo, Arial, sans-serif`;
     const frase = ANUNCIOS.map((x) => `${x.t1} ${x.t2}`).join("   ◆   ") + "   ◆   ", ancho = ctx.measureText(frase).width, off = ((now / 1000) * h * 3) % ancho;
     for (let x = -off; x < w; x += ancho) ctx.fillText(frase, x, h * 0.54);
     e.tex.needsUpdate = true;
   },
+  luz(e, c, n, w, h) {   // brillo de la pantalla: solo un halo rectangular sobre la propia pantalla (sin luz sobre el suelo); el color sigue al anuncio actual
+    if (e.luz) return; const gy = suelo(c.x, c.z), alt = c.y - gy, ang = Math.atan2(n.x, n.z), L = { mats: [] };
+    const halo = new THREE.Mesh(new THREE.PlaneGeometry(w * 1.5, h * 1.9), matLuzRect()); halo.rotation.y = ang; halo.position.set(c.x + n.x * 0.12, c.y, c.z + n.z * 0.12); halo.renderOrder = 4; cityGroup.add(halo); L.halo = halo;
+    e.luz = L; LED.tinte(e);
+  },
+  tinte(e) { if (!e.luz) return; const col = new THREE.Color(e.sl ? 0xffffff : ANUNCIOS[e.k % ANUNCIOS.length].fondo[1]).lerp(new THREE.Color(0xffffff), 0.25); for (const m of [e.luz.halo, e.luz.suelo]) if (m) m.material.color.copy(col); },
   quita(mt) { const i = LED.lista.indexOf(mt.userData.led); if (i >= 0) { LED.lista.splice(i, 1); mt.userData.led.tex.dispose(); mt.userData.led = null; } },
   update(now, noche) {   // el anuncio cambia cada 6 s; brillo: día 0,5 / noche 1,7 (las pantallas se ven de día pero se lucen de noche)
-    const inten = 0.5 + 1.2 * noche;
-    for (const e of LED.lista) { e.mt.emissiveIntensity = inten; if (e.cinta) { if (now - e.ult > 66) { e.ult = now; if (now > e.prox) { if (e.prox) e.k++; e.prox = now + 24000; } LED.cinta(e, now); } continue; } if (now > e.prox) { if (e.prox) { e.k++; LED.dibuja(e, e.k); } e.prox = now + 6000 + (e.k % 3) * 700; } }
+    const inten = 0.38 + 0.82 * noche;   // día 0,38 / noche 1,2 (antes 0,5 / 1,7: quemaba los blancos)
+    for (const e of LED.lista) { e.mt.emissiveIntensity = inten;
+      if (!e.luz && e.mesh) { let t = e.mesh; while (t.parent) t = t.parent; if (t === scene) { const bb = new THREE.Box3().setFromObject(e.mesh), sz = bb.getSize(new THREE.Vector3()), cc = bb.getCenter(new THREE.Vector3()), nn = new THREE.Vector3().fromBufferAttribute(e.mesh.geometry.attributes.normal, 0).transformDirection(e.mesh.matrixWorld); nn.y = 0; if (nn.lengthSq() > 0.01) { nn.normalize(); LED.luz(e, cc, nn, Math.max(sz.x, sz.z), sz.y); } else e.mesh = null; } }
+      if (e.luz) { if (e.luz.halo) e.luz.halo.material.opacity = noche * 0.10; } if (e.cinta) { if (now - e.ult > 30) { e.ult = now; if (now > e.prox) { if (e.prox) e.k++; e.prox = now + 24000; } LED.cinta(e, now); } continue; } if (LED.paso(e, now)) continue; if (now > e.prox) { if (e.prox) { e.k++; LED.dibuja(e, e.k); } e.prox = now + 6000 + (e.k % 3) * 700; } }
   },
 };
 const matMarcoLED = new THREE.MeshStandardMaterial({ color: 0x15171c, metalness: 0.55, roughness: 0.55 });
@@ -1276,9 +1346,39 @@ const pantallaExtra = (grupo, ex) => {   // pantalla tipo estadio colocada sobre
   g.add(new THREE.Mesh(new THREE.BoxGeometry(ancho + 0.5, alto + 0.5, grosor), matMarcoLED));
   const w = ancho > 30 || cinta ? 1024 : 512, h = Math.max(48, Math.round(w * alto / ancho)), mt = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4, metalness: 0 });
   const pl = new THREE.Mesh(new THREE.PlaneGeometry(ancho, alto), mt); pl.position.z = grosor / 2 + 0.02; g.add(pl);
-  LED.registra(mt, [w, h], { flipY: true, cinta: cinta || ancho / alto > 7 });
+  LED.registra(mt, [w, h], { flipY: true, cinta: cinta || ancho / alto > 7 }); mt.userData.led.mesh = pl;   // la luz se crea cuando la malla ya está en la escena
   if (y > ySuelo + 0.05) for (const sx of [-1, 1]) { const pata = new THREE.Mesh(new THREE.BoxGeometry(0.5, y - ySuelo, 0.5), matMarcoLED); pata.position.set(sx * (ancho / 2 - 1.2), -(alto / 2) - (y - ySuelo) / 2 + 0.25, 0); g.add(pata); }
   grupo.add(g);
+};
+const VEHICULOS = [];                            // vehículos colocados desde el editor (categoría `vehiculos`): se pueden abordar y conducir
+// Ventanas con luz de noche (catálogo `ventanasLuz`): cada ventana (componente conexa del cristal) se enciende al azar, de forma estable entre LODs. Sustituye al interior real:
+// el "interior" es solo un color cálido en el propio cristal (sin geometría, un único shader parcheado), no hay que dibujar habitaciones.
+const uNocheV = { value: 0 }, GIRA = [];   // GIRA: nodos que giran sobre su eje (carteles), sincronizados por el reloj
+const giraPrep = (g, m) => { const cfg = m.giratorio; if (!cfg) return; const nodo = g.getObjectByName(cfg.nodo); if (!nodo) return; nodo.userData.vel = cfg.vel ?? 0.8; nodo.traverse((o) => { o.userData.noFusiona = true; }); GIRA.push(nodo); };
+const luzVentanas = (geo, prob) => {
+  const pos = geo.attributes.position, n = pos.count, idx = geo.index, padre = Int32Array.from({ length: n }, (_, i) => i), raiz = (i) => { while (padre[i] !== i) i = padre[i] = padre[padre[i]]; return i; }, une = (a, b) => { padre[raiz(a)] = raiz(b); };
+  const vistos = new Map(); for (let i = 0; i < n; i++) { const kk = Math.round(pos.getX(i) * 50) + "," + Math.round(pos.getY(i) * 50) + "," + Math.round(pos.getZ(i) * 50); if (vistos.has(kk)) une(i, vistos.get(kk)); else vistos.set(kk, i); }
+  const nt = idx ? idx.count : n; for (let t = 0; t < nt; t += 3) { const a = idx ? idx.getX(t) : t, b = idx ? idx.getX(t + 1) : t + 1, c = idx ? idx.getX(t + 2) : t + 2; une(a, b); une(b, c); }
+  const cs = new Map(); for (let i = 0; i < n; i++) { const r = raiz(i); let q = cs.get(r); if (!q) cs.set(r, q = [0, 0, 0, 0]); q[0] += pos.getX(i); q[1] += pos.getY(i); q[2] += pos.getZ(i); q[3]++; }
+  const COL = [[1, 0.66, 0.32], [1, 0.82, 0.55], [0.95, 0.9, 0.78], [0.55, 0.7, 1]], luz = new Float32Array(n * 3), res = new Map();
+  for (const [r, q] of cs) { const hs = (Math.sin(Math.round(q[0] / q[3] * 4) * 12.9898 + Math.round(q[1] / q[3] * 4) * 78.233 + Math.round(q[2] / q[3] * 4) * 37.719) * 43758.5453) % 1, h = Math.abs(hs), h2 = (h * 97.13) % 1; res.set(r, h < prob ? COL[Math.min(3, Math.floor(h2 * h2 * 4 + (h2 > 0.9 ? 1 : 0)))].map((v) => v * (0.6 + 0.4 * ((h * 31.7) % 1))) : null); }
+  for (let i = 0; i < n; i++) { const c = res.get(raiz(i)); if (c) luz.set(c, i * 3); }
+  geo.setAttribute("aLuz", new THREE.BufferAttribute(luz, 3));
+};
+const parcheaVentana = (mt, alfa = 0.92) => {
+  if (mt.userData.vl) return; mt.userData.vl = true;
+  mt.onBeforeCompile = (sh) => {
+    sh.uniforms.uNocheV = uNocheV;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec3 aLuz; varying vec3 vLuzV;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvLuzV = aLuz;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vLuzV; uniform float uNocheV;").replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\nfloat vlK = step(0.01, vLuzV.r + vLuzV.g + vLuzV.b) * uNocheV; totalEmissiveRadiance += vLuzV * vlK * 1.5; diffuseColor.a = max(diffuseColor.a, vlK * "+alfa.toFixed(2)+");");
+  };
+  mt.customProgramCacheKey = () => "vl1"; mt.needsUpdate = true;
+};
+const ventanasPrep = (g, m) => {
+  const cfg = m.ventanasLuz; if (!cfg) return;
+  g.traverse((o) => { if (!o.isMesh) return; const ms = [].concat(o.material), vent = ms.filter((mt) => cfg.materiales?.includes(mt.name));
+    for (const mt of ms) if (cfg.apagar?.includes(mt.name)) { mt.emissive.set(0, 0, 0); mt.emissiveMap = null; mt.needsUpdate = true; }   // interior emisivo plano: fuera
+    if (vent.length) { if (!o.geometry.attributes.aLuz) luzVentanas(o.geometry, cfg.prob ?? 0.4); vent.forEach((mt) => parcheaVentana(mt, cfg.alfa)); } });
 };
 const matsNocheEdificio = new Set(), huellasEdificio = [], lentesSem = new Map();   // id del edificio-semáforo -> { Green, Amber, Red }: lentes propias de cada semáforo (materiales clonados por instancia)
 const modInfo = (e, m) => {   // modelos modulares: `modulos` copias pegadas; con `modular.libre` y `ancho` (m) el ancho es continuo: n = ceil(ancho/paso) copias, cada una comprimida/estirada en X (sx)
@@ -1288,7 +1388,7 @@ const modInfo = (e, m) => {   // modelos modulares: `modulos` copias pegadas; co
 };
 const nMod = (e, m) => modInfo(e, m).n;   // modelos modulares: `modulos` copias pegadas a lo ancho (sin escalar)
 const huellaEd = (e, m) => {                     // esquinas de la huella en el mundo (para colisión y minimapa)
-  const k = e.escala ?? 1, ry = Math.PI - (e.rumbo ?? 180) * Math.PI / 180, c = Math.cos(ry), sn = Math.sin(ry), h = m.huella, W = h.ancho * nMod(e, m) * modInfo(e, m).sx;
+  const k = m.fijo ? 1 : (e.escala ?? 1), ry = Math.PI - (e.rumbo ?? 180) * Math.PI / 180, c = Math.cos(ry), sn = Math.sin(ry), h = m.huella, W = h.ancho * nMod(e, m) * modInfo(e, m).sx;
   return [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b]) => { const lx = (h.cx + a * W / 2) * k, lz = (h.cz + b * h.fondo / 2) * k; return [e.x + lx * c + lz * sn, e.z - lx * sn + lz * c]; });
 };
 
@@ -1297,12 +1397,12 @@ const huellaEd = (e, m) => {                     // esquinas de la huella en el 
 // (máx. 2 a la vez, los más cercanos primero), se reducen las texturas de los niveles lejanos, se suben a la GPU poco a poco ANTES de mostrarlos para evitar tirones,
 // y los niveles sin uso se descargan (dispose) tras 20 s. En la precarga se leen el nivel más ligero y el que toca en el punto de salida de cada modelo usado en el mapa.
 const LODM = (() => {
-  const cargador = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), cache = new Map(), cola = [], lista = []; let activos = 0, ultimo = 0, preFiles = null, preMB = {}, preBytes = {};
+  const cargador = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).setKTX2Loader(kt), cache = new Map(), cola = [], lista = []; let activos = 0, ultimo = 0, preFiles = null, preMB = {}, preBytes = {};
   const MAXTEX = [2048, 1024, 512];                                                 // tope de resolución por nivel (x CALIDAD.tex); no amplía nunca
   const texturasDe = (scene) => { const v = new Set(); scene.traverse((o) => { if (!o.isMesh) return; for (const m of (Array.isArray(o.material) ? o.material : [o.material])) for (const k in m) { const t = m[k]; if (t && t.isTexture) v.add(t); } }); return [...v]; };
   const reducir = (scene, max) => {   // albedo y emisivo hasta `max`; normales, rugosidad, metal y AO a la mitad (se notan mucho menos y son 2/3 de la memoria)
     const tope = new Map(); scene.traverse((o) => { if (!o.isMesh) return; for (const m of (Array.isArray(o.material) ? o.material : [o.material])) for (const k in m) { const t = m[k]; if (t && t.isTexture) tope.set(t, Math.min(tope.get(t) ?? 1e9, (k === "map" || k === "emissiveMap") ? max : Math.max(256, max / 2))); } });
-    for (const [t, mx] of tope) { const im = t.image; if (!im || !im.width || Math.max(im.width, im.height) <= mx) continue; const max2 = mx;
+    for (const [t, mx] of tope) { const im = t.image; if (t.isCompressedTexture || !im || !im.width || Math.max(im.width, im.height) <= mx) continue; const max2 = mx;
       const f = max2 / Math.max(im.width, im.height), c = document.createElement("canvas"); c.width = Math.max(4, Math.round(im.width * f)); c.height = Math.max(4, Math.round(im.height * f));
       c.getContext("2d").drawImage(im, 0, 0, c.width, c.height); if (im.close) im.close(); t.image = c; t.needsUpdate = true; }
   };
@@ -1310,7 +1410,8 @@ const LODM = (() => {
   const FUSION = !new URLSearchParams(location.search).has("sinfusion");   // ?sinfusion: desactiva la fusión (solo para comparar)
   const fusiona = (root) => {   // une las mallas opacas que comparten material (y atributos) en una sola: menos llamadas de dibujo; las transparentes se dejan como están (orden de pintado)
     root.updateMatrixWorld(true); const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(), M = new THREE.Matrix4(), grupos = new Map();
-    root.traverse((o) => { if (!o.isMesh || o.isSkinnedMesh || o.isInstancedMesh || !o.visible || Array.isArray(o.material) || o.material.transparent || o.geometry.morphAttributes?.position) return;
+    const enGira = (o) => { for (let q = o.parent; q; q = q.parent) if (/giratorio/i.test(q.name)) return true; return false;   };   // las piezas de un nodo «…Giratorio» no se fusionan con el resto (giran solas)
+    root.traverse((o) => { if (!o.isMesh || enGira(o) || o.userData.noFusiona || o.isSkinnedMesh || o.isInstancedMesh || !o.visible || Array.isArray(o.material) || o.material.transparent || o.geometry.morphAttributes?.position) return;
       const g = o.geometry, k = o.material.uuid + "|" + Object.keys(g.attributes).sort().join(",") + (g.index ? "i" : "n"); (grupos.get(k) ?? grupos.set(k, []).get(k)).push(o); });
     const nuevo = new THREE.Group(); nuevo.name = "fusion";
     for (const lista of grupos.values()) { if (lista.length < 2) continue;
@@ -1325,10 +1426,10 @@ const LODM = (() => {
   const liberar = (scene) => scene.traverse((o) => { if (!o.isMesh) return; o.geometry?.dispose(); for (const m of (Array.isArray(o.material) ? o.material : [o.material])) { matsNocheEdificio.delete(m); if (m.userData.led) LED.quita(m); for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose(); m.dispose(); } });
   const bombea = () => { while (activos < 3 && cola.length) { cola.sort((a, b) => a.d - b.d); const it = cola.shift(); activos++;
     cargador.loadAsync("./modelos/" + it.e.f, (ev) => { if (preFiles?.has(it.e.f)) { preBytes[it.e.f] = ev.loaded; LODM.preProgreso(); } })
-      .then((g) => { reducir(g.scene, Math.max(64, MAXTEX[Math.min(it.nivel, 2)] * CALIDAD.tex)); if (FUSION) fusiona(g.scene); it.e.scene = g.scene; it.e.texs = texturasDe(g.scene); it.e.ntex = it.e.texs.length; it.e.gpu = false; it.e.comp = false; it.e.last = performance.now(); })   // `last` al leerlo: si no, se liberaba nada más cargar (antes de que el edificio lo usara) y se volvía a pedir sin fin
+      .then((g) => { if (it.e.ajuste === "arena") ajustaArena(THREE, g.scene); reducir(g.scene, Math.max(64, MAXTEX[Math.min(it.nivel, 2)] * CALIDAD.tex)); if (FUSION) fusiona(g.scene); it.e.scene = g.scene; it.e.texs = texturasDe(g.scene); it.e.ntex = it.e.texs.length; it.e.gpu = false; it.e.comp = false; it.e.last = performance.now(); })   // `last` al leerlo: si no, se liberaba nada más cargar (antes de que el edificio lo usara) y se volvía a pedir sin fin
       .catch((err) => { console.warn("No se pudo cargar", it.e.f, err); it.e.fallo = true; })
       .finally(() => { activos--; it.e.cargando = false; if (preFiles?.has(it.e.f)) { preBytes[it.e.f] = preMB[it.e.f] ?? 1; LODM.preProgreso(); } bombea(); }); } };
-  const pedir = (f, nivel, d) => { let e = cache.get(f); if (!e) cache.set(f, e = { f, scene: null, cargando: false, users: new Set(), last: 0, gpu: false, texs: [], comp: false }); if (!e.scene && !e.cargando && !e.fallo) { e.cargando = true; cola.push({ e, nivel, d }); bombea(); } else { const it = cola.find((q) => q.e === e); if (it) it.d = Math.min(it.d, d); } return e; };
+  const pedir = (f, nivel, d, aj) => { let e = cache.get(f); if (!e) cache.set(f, e = { f, ajuste: aj, scene: null, cargando: false, users: new Set(), last: 0, gpu: false, texs: [], comp: false }); if (!e.scene && !e.cargando && !e.fallo) { e.cargando = true; cola.push({ e, nivel, d }); bombea(); } else { const it = cola.find((q) => q.e === e); if (it) it.d = Math.min(it.d, d); } return e; };
   const nivelObjetivo = (b, x, z, vel) => {
     const dx = x - b.cx, dz = z - b.cz, lx = dx * b.c - dz * b.sn, lz = dx * b.sn + dz * b.c, n = b.niveles, d = Math.hypot(Math.max(Math.abs(lx) - b.hx, 0), Math.max(Math.abs(lz) - b.hz, 0)) * (1 + Math.min(1, vel / 40) * 0.25) / (CALIDAD.lod * DIST);
     let L = b.obj; while (L < n.length - 1 && d > n[L + 1].desde * 1.08) L++; while (L > 0 && d < n[L].desde * 0.92) L--; return [L, d];
@@ -1338,11 +1439,11 @@ const LODM = (() => {
     reducir,
     registra(b) {   // b: { id, niveles, grupos, cx, cz, c, sn, hx, hz, prep }
       b.vis = -1; b.obj = b.niveles.length - 1; b.clones = b.niveles.map(() => null); b.oculto = b.niveles.map(() => 0); lista.push(b);
-      pedir(b.niveles.at(-1).archivo, b.niveles.length - 1, 0);                        // se parte del nivel más ligero para que no haya huecos al aparecer
+      pedir(b.niveles.at(-1).archivo, b.niveles.length - 1, 0, b.ajuste);                        // se parte del nivel más ligero para que no haya huecos al aparecer
     },
     async precarga(x, z) {   // lee ahora el nivel más ligero y el que toca en (x,z) de cada edificio; el avance (por bytes) alimenta la pantalla de carga
       const fs = new Set(); for (const b of lista) { const [L] = nivelObjetivo(b, x, z, 0); b.obj = L; fs.add(b.niveles.at(-1).archivo); fs.add(b.niveles[L].archivo); }
-      preFiles = fs; for (const b of lista) pedir(b.niveles[b.obj].archivo, b.obj, 0);
+      preFiles = fs; for (const b of lista) pedir(b.niveles[b.obj].archivo, b.obj, 0, b.ajuste);
       await Promise.all([...fs].map((f) => fetch("./modelos/" + f, { method: "HEAD" }).then((r) => { preMB[f] = (+r.headers.get("content-length") || 1e6) / 1048576; }).catch(() => { preMB[f] = 1; })));
       PRE.t.edificios.peso = Math.max(1, Object.values(preMB).reduce((p, q) => p + q, 0)); api.preProgreso();
     },
@@ -1352,7 +1453,7 @@ const LODM = (() => {
     subir(ms) {   // sube poco a poco (presupuesto de `ms` milisegundos por cuadro, mínimo una textura) las texturas de los niveles recién leídos a la GPU; solo entonces el nivel se puede mostrar
       const t0 = performance.now();
       for (const e of cache.values()) { if (!e.scene || e.gpu) continue;
-        while (e.texs.length && performance.now() - t0 < ms) { const t = e.texs.pop(); try { renderer.initTexture(t); } catch (err) { /* textura no subible */ } if (performance.now() - t0 >= ms) break; }
+        while (e.texs.length && performance.now() - t0 < ms) { const t = e.texs.pop(); try { renderer.initTexture(t); if (t.isCompressedTexture) t.mipmaps = []; } catch (err) { /* textura no subible */ } if (performance.now() - t0 >= ms) break; }
         if (!e.texs.length) e.gpu = true;                                   // texturas ya en la GPU: el nivel se puede mostrar (los shaders iguales se reutilizan)
         if (performance.now() - t0 >= ms) break; }
     },
@@ -1360,7 +1461,7 @@ const LODM = (() => {
       if (now - ultimo < 200) return; ultimo = now;
       for (const b of lista) {
         const [L, dd] = nivelObjetivo(b, x, z, vel), n = b.niveles; b.obj = L;
-        const ent = n.map((nv, i) => (i === L || b.clones[i] ? pedir(nv.archivo, i, dd) : null));   // el objetivo se pide (si no está) y los ya presentes se mantienen vivos
+        const ent = n.map((nv, i) => (i === L || b.clones[i] ? pedir(nv.archivo, i, dd, b.ajuste) : null));   // el objetivo se pide (si no está) y los ya presentes se mantienen vivos
         let mostrar = -1, mejor = 1e9; for (let i = 0; i < n.length; i++) if (ent[i] && ent[i].scene && ent[i].gpu) { const sc = Math.abs(i - L) + (i < L ? 0.1 : 0); if (sc < mejor) { mejor = sc; mostrar = i; } }   // el listo (en GPU) más cercano al objetivo (a igualdad, el más ligero)
         if (mostrar >= 0 && !b.clones[mostrar]) { b.clones[mostrar] = b.grupos.map((g) => { const k = ent[mostrar].scene.clone(true); b.prep(k, mostrar); g.add(k); return k; }); ent[mostrar].users.add(b.id); }
         for (let i = 0; i < n.length; i++) { const cl = b.clones[i]; if (!cl) continue; const v = i === mostrar; cl.forEach((k) => { k.visible = v; }); if (v) { b.oculto[i] = now; cache.get(n[i].archivo).last = now; } else if (now - b.oculto[i] > 20000) { cl.forEach((k) => k.parent?.remove(k)); b.clones[i] = null; cache.get(n[i].archivo).users.delete(b.id); } }
@@ -1378,28 +1479,41 @@ if ((MAPA.edificios ?? []).length) preTarea("edificios", 60); else PRE.edifOk = 
   const cargas = new Map(), cargador = new GLTFLoader();
   for (const e of MAPA.edificios ?? []) {
     const m = CAT.modelos.find((q) => q.id === e.modelo); if (!m) { console.warn("Edificio sin modelo en el catálogo:", e.modelo); continue; }
-    const k = e.escala ?? 1, ry = Math.PI - (e.rumbo ?? 180) * Math.PI / 180, c = Math.cos(ry), sn = Math.sin(ry), h = m.huella, { n: nm, sx } = modInfo(e, m), ox = (q) => (q - (nm - 1) / 2) * (m.modular?.paso ?? h.ancho) * sx, y0 = e.y ?? (enBloque(e.x, e.z) ? ACERA : 0);
+    const k = m.fijo ? 1 : (e.escala ?? 1), ry = Math.PI - (e.rumbo ?? 180) * Math.PI / 180, c = Math.cos(ry), sn = Math.sin(ry), h = m.huella, { n: nm, sx } = modInfo(e, m), ox = (q) => (q - (nm - 1) / 2) * (m.modular?.paso ?? h.ancho) * sx, y0 = e.y ?? (enBloque(e.x, e.z) ? ACERA : 0);
     huellasEdificio.push(huellaEd(e, m));
+    const veh = m.categoria === "vehiculos" ? { id: e.id, modelo: m.id, x: e.x, z: e.z, hd: ry, color: e.color, grupos: null, cajas: [], tomado: false } : null; if (veh) VEHICULOS.push(veh);
     if (!m.colision) for (let u = -h.ancho * nm / 2 + 2; u < h.ancho * nm / 2 + 2; u += 4) for (let v = -h.fondo / 2 + 2; v < h.fondo / 2 + 2; v += 4) {   // sin modelo de colisión: la huella rellena con cajas de 5 m
       const lx = (h.cx + u) * k, lz = (h.cz + v) * k, wx = e.x + lx * c + lz * sn, wz = e.z - lx * sn + lz * c; addObst(wx - 2.5, wx + 2.5, wz - 2.5, wz + 2.5);
     }
     const carga = (f) => { if (!cargas.has(f)) cargas.set(f, cargador.loadAsync("./modelos/" + f)); return cargas.get(f); };   // solo para los modelos de colisión
     const siempre = m.emisivoSiempre ?? [], niveles = (m.lods?.length ? m.lods : [{ archivo: m.archivo, desde: 0 }]).slice().sort((p, q) => p.desde - q.desde);
     const lent = m.semaforo ? { Green: new Set(), Amber: new Set(), Red: new Set() } : null, clonLente = new Map(); if (lent) lentesSem.set(e.id, lent);
-    const prep = (g, nivel) => g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; const ms = Array.isArray(o.material) ? o.material : [o.material];
+    const pint = m.colorable && /^#[0-9a-f]{6}$/i.test(e.color ?? "") ? m.colorable.materiales : null, clonPint = new Map();   // vehículos: `color` tiñe los materiales de pintura (copia propia por instancia)
+    const prep = (g, nivel) => { ventanasPrep(g, m); giraPrep(g, m); g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; const ms = Array.isArray(o.material) ? o.material : [o.material];
+      if (pint) ms.forEach((mt, i) => { if (!pint.includes(mt.name)) return; const kk = nivel + ":" + mt.name; let c = clonPint.get(kk); if (!c) { c = mt.clone(); c.color.set(e.color); clonPint.set(kk, c); } if (Array.isArray(o.material)) o.material[i] = c; else o.material = c; });
       if (m.semaforo) ms.forEach((mt, i) => { const lm = /^MAT_Lens_(Red|Amber|Green)$/.exec(mt.name); if (!lm) return; const kk = nivel + ":" + mt.name; let c = clonLente.get(kk); if (!c) { c = mt.clone(); c.emissive.set(1, 1, 1); clonLente.set(kk, c); lent[lm[1]].add(c); } if (Array.isArray(o.material)) o.material[i] = c; else o.material = c; });   // lentes propias de este semáforo (el GLB trae solo textura de emisión: se pone el factor y el juego la modula)
-      for (const mt of ms) if (m.pantallasLED?.[mt.name]) LED.registra(mt, m.pantallasLED[mt.name]);   // pantallas LED con anuncios que cambian
-      for (const mt of ms) if (mt.emissive && (mt.emissiveMap || mt.emissive.r + mt.emissive.g + mt.emissive.b > 0) && !mt.userData.eBase && !mt.userData.led && !siempre.includes(mt.name) && !/^MAT_Lens_/.test(mt.name)) { mt.userData.eBase = (mt.emissiveIntensity ?? 1) * (m.brillo ?? 1) * (m.brilloMat?.[mt.name] ?? (/logo/i.test(mt.name) ? 0.2 : /lente|faro|reflector|bombillo/i.test(mt.name) ? 0.35 : 0.5)); matsNocheEdificio.add(mt); } } });   // brillo nocturno rebajado: logos 20 %, focos 35 %, resto 50 % (y `brillo` del catálogo)
-    const grupos = []; for (let q = 0; q < nm; q++) { const gq = new THREE.Group(); gq.rotation.y = ry; gq.scale.set(k * sx, k, k); gq.position.set(e.x + ox(q) * k * c, y0, e.z - ox(q) * k * sn); cityGroup.add(gq); grupos.push(gq); }   // una por módulo; los niveles de detalle cuelgan de ella
+      for (const mt of ms) if (m.pantallasLED?.[mt.name]) { LED.registra(mt, m.pantallasLED[mt.name]); if (!mt.userData.led.mesh && !mt.userData.led.luz) mt.userData.led.mesh = o; }   // pantallas LED con anuncios que cambian (y la malla para su luz)
+      for (const mt of ms) if (mt.emissive && (mt.emissiveMap || mt.emissive.r + mt.emissive.g + mt.emissive.b > 0) && !mt.userData.eBase && !mt.userData.led && !siempre.includes(mt.name) && !/^MAT_Lens_/.test(mt.name)) { mt.userData.eBase = (mt.emissiveIntensity ?? 1) * (m.brillo ?? 1) * (m.brilloMat?.[mt.name] ?? (/logo/i.test(mt.name) ? 0.2 : /lente|faro|reflector|bombillo/i.test(mt.name) ? 0.35 : 0.5)); matsNocheEdificio.add(mt); } } }); };   // brillo nocturno rebajado: logos 20 %, focos 35 %, resto 50 % (y `brillo` del catálogo)
+    for (const [hx, hy, hz, tam] of m.halos ?? []) { const wx = e.x + (hx * c + hz * sn) * k, wz = e.z + (-hx * sn + hz * c) * k, hm = new THREE.Mesh(new THREE.PlaneGeometry(tam, tam), matHaloCartel); hm.position.set(wx, y0 + hy * k, wz); hm.renderOrder = 4; hm.visible = false; cityGroup.add(hm); charcos.push(hm); }   // resplandor nocturno (catálogo `halos`: [x, y, z, tamaño])
+    for (const [lx, ly, lz] of m.luces ?? []) {   // luces del modelo (p. ej. postes): como las primeras farolas (cono de luz, halo, charco y foco real) pero BLANCAS y con el charco RECTANGULAR y amplio
+      const wx = e.x + (lx * c + lz * sn) * k, wz = e.z + (-lx * sn + lz * c) * k, ox = lx + Math.sign(lx) * ly * 0.176, gx = e.x + (ox * c + lz * sn) * k, gz = e.z + (-ox * sn + lz * c) * k, hy = y0 + ly * k;   // el foco apunta 10 deg hacia afuera
+      farolas.push([wx, wz, 0, wx, hy, wz, 0xffe8c8, 40, 0.7]);   // foco real del banco de farolas (blanco, alcance 60 m, 55 % de intensidad: con 100 % el suelo se quemaba a blanco)
+      const pl = new THREE.Mesh(new THREE.PlaneGeometry(20 * k, 32 * k).rotateX(-Math.PI / 2), matCharcoBlanco); pl.rotation.y = ry; pl.position.set(gx, suelo(gx, gz) + 0.05, gz); pl.renderOrder = 2; pl.visible = false; cityGroup.add(pl); charcos.push(pl);
+      const Hc = (hy - suelo(gx, gz) - 0.2) * 0.68, cono = new THREE.Mesh(new THREE.ConeGeometry(6.5 * k, Hc, 28, 1, true).translate(0, -Hc / 2, 0), matConoBlanco); cono.position.set(wx, hy, wz); cono.renderOrder = 3; cono.visible = false; cityGroup.add(cono); charcos.push(cono);
+      const halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), matHaloBlanco); halo.position.set(wx, hy, wz); halo.renderOrder = 4; halo.visible = false; cityGroup.add(halo); charcos.push(halo);
+    }
+    const grupos = []; if (veh) veh.grupos = grupos; for (let q = 0; q < nm; q++) { const gq = new THREE.Group(); gq.rotation.y = ry; gq.scale.set(k * sx, k, k); gq.position.set(e.x + ox(q) * k * c, y0, e.z - ox(q) * k * sn); cityGroup.add(gq); grupos.push(gq); }   // una por módulo; los niveles de detalle cuelgan de ella
     for (const ex of m.pantallasExtra ?? []) pantallaExtra(grupos[0], ex);   // pantallas tipo estadio sobre el edificio
-    LODM.registra({ id: e.id ?? ("e" + LODM.lista.length), niveles, grupos, prep, cx: e.x + (h.cx * sx * c + h.cz * sn) * k, cz: e.z + (-h.cx * sx * sn + h.cz * c) * k, c, sn, hx: h.ancho * nm * sx * k / 2, hz: h.fondo * k / 2 });
+    LODM.registra({ id: e.id ?? ("e" + LODM.lista.length), niveles, grupos, prep, ajuste: m.ajuste, cx: e.x + (h.cx * sx * c + h.cz * sn) * k, cz: e.z + (-h.cx * sx * sn + h.cz * c) * k, c, sn, hx: h.ancho * nm * sx * k / 2, hz: h.fondo * k / 2 });
     if (m.colision) PRE.col = (PRE.col ?? 0) + 1, carga(m.colision).catch(() => {}).finally(() => { PRE.col--; });
     if (m.colision) carga(m.colision).then((gc) => {   // colisión: se rasteriza el modelo de colisión en planta cada 1 m (solo choca lo que hay bajo el modelo)
       const col = gc.scene, meshes = []; col.updateMatrixWorld(true); col.traverse((o) => { if (o.isMesh) { o.material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }); meshes.push(o); } });
+      if (m.categoria === "complementos") { const aereo = (o) => new THREE.Box3().setFromObject(o).min.y > 2; for (let i = meshes.length - 1; i >= 0; i--) if (aereo(meshes[i])) meshes.splice(i, 1); }   // complementos (semáforos): los brazos y cajas en altura no bloquean el suelo, solo lo que toca el suelo
       const rc = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 400), org = new THREE.Vector3();
-      for (let q = 0; q < nm; q++) for (let u = -h.ancho / 2; u <= h.ancho / 2; u += 1) for (let v = -h.fondo / 2; v <= h.fondo / 2; v += 1) {
+      const ps = Math.min(h.ancho, h.fondo) < 2 ? 0.2 : 1;   // objetos delgados (postes): muestreo fino, si no la rejilla de 1 m se salta el fuste
+      for (let q = 0; q < nm; q++) for (let u = -h.ancho / 2; u <= h.ancho / 2; u += ps) for (let v = -h.fondo / 2; v <= h.fondo / 2; v += ps) {
         const lx0 = h.cx + u, lx = lx0 * sx + ox(q), lz = h.cz + v; rc.set(org.set(lx0, 200, lz), rc.ray.direction); if (!rc.intersectObjects(meshes, false).length) continue;
-        const wx = e.x + (lx * c + lz * sn) * k, wz = e.z + (-lx * sn + lz * c) * k; addObst(wx - 0.5 * k, wx + 0.5 * k, wz - 0.5 * k, wz + 0.5 * k);   // celdas de 1 m exactas (sin solape): deja pasar por huecos estrechos, p. ej. la entrada de la cerca
+        const wx = e.x + (lx * c + lz * sn) * k, wz = e.z + (-lx * sn + lz * c) * k; const bx = addObst(wx - ps / 2 * k, wx + ps / 2 * k, wz - ps / 2 * k, wz + ps / 2 * k); if (veh) veh.cajas.push(bx);   // celdas de 1 m exactas (sin solape): deja pasar por huecos estrechos, p. ej. la entrada de la cerca
       }
     }).catch((err) => console.warn("No se pudo cargar la colisión", m.colision, err));
   }
@@ -1928,33 +2042,35 @@ const luzFreno = new THREE.PointLight(0xff1a0a, 0, 8, 2); luzFreno.position.set(
 // banco de focos reales para las farolas: POOL SpotLights que se reasignan (cada 0,25 s) a las farolas más cercanas al jugador. El resto de farolas
 // aporta cono, halo y charco de luz (efectos baratos). Un número fijo de luces evita recompilar shaders.
 const POOL = touch ? 3 : 6, spotsF = [];
-for (let i = 0; i < POOL; i++) { const l = new THREE.SpotLight(0xffb56a, 0, 36, 1.15, 0.9, 2); l.target = new THREE.Object3D(); scene.add(l, l.target); spotsF.push({ l, id: -1, k: 0 }); }
+for (let i = 0; i < POOL; i++) { const l = new THREE.SpotLight(0xffb56a, 0, 36, 0.85, 1, 2); l.castShadow = false; l.target = new THREE.Object3D(); scene.add(l, l.target); spotsF.push({ l, id: -1, k: 0 }); }
 let tAsig = 0;
 function asignaFarolas() {
   const c = [];
   for (let i = 0; i < farolas.length; i++) { const f = farolas[i], d = (f[3] - fo.x) ** 2 + (f[5] - fo.z) ** 2; if (d < 3600) c.push([d, i]); }
-  c.sort((a, b) => a[0] - b[0]); c.length = Math.min(c.length, POOL);
+  c.sort((a, b) => a[0] - b[0]); { const ok = []; for (const e of c) { const f = farolas[e[1]]; if (ok.length < POOL && ok.every((q) => Math.hypot(farolas[q[1]][3] - f[3], farolas[q[1]][5] - f[5]) > 7)) ok.push(e); } c.length = 0; c.push(...ok); }
   const quiero = new Set(c.map((e) => e[1])), libres = [];
   for (const s of spotsF) { if (quiero.has(s.id)) quiero.delete(s.id); else libres.push(s); }
   for (const i of quiero) {
     const s = libres.pop(); if (!s) break;
-    const f = farolas[i]; s.id = i; s.k = 0; s.l.position.set(f[3], f[4], f[5]); s.l.target.position.set(f[3], ACERA, f[5]); s.l.target.updateMatrixWorld();
+    const f = farolas[i]; s.id = i; s.k = 0; s.l.color.setHex(f[6] ?? 0xffb56a); s.l.distance = f[7] ?? 36; s.l.position.set(f[3], f[4], f[5]); s.l.target.position.set(f[3], ACERA, f[5]); s.l.target.updateMatrixWorld();
   }
   for (const s of libres) s.id = -1;
 }
 
 const dr = new DRACOLoader().setDecoderPath(CDN + "draco/gltf/");
-const kt = new KTX2Loader().setTranscoderPath(CDN + "basis/").detectSupport(renderer);
-const loader = new GLTFLoader().setDRACOLoader(dr).setKTX2Loader(kt);
+const loader = new GLTFLoader().setDRACOLoader(dr).setKTX2Loader(kt).setMeshoptDecoder(MeshoptDecoder);
 // el carro aprobado de 12_secuencia (arena-juego): exterior + interior, puertas, ruedas y volante como piezas propias
 const movil = touch || innerWidth < 900, MODELO = "arena_lod0.glb";   // 148 566 triángulos, texturas 2048 (antes arena.glb 1,26 M / arena_movil.glb 581 k); arena_lod1.glb (33 k) solo sirve de lejos
+const CARRO = { v: null, arena: null, ruedasArena: [], pintura: [], actual: "arena" };   // modelo del carro conducible (se intercambia al abordar un vehículo del mapa)
+const ELITE = { prom: null, model: null, ruedas: [], pintura: [], ojos: null, volante: null, interior: [], vidrios: [] }, REFINE = { prom: null, model: null, ruedas: [], pintura: [], ojos: null, volante: null, interior: [], vidrios: [] }, AVENTURA = { prom: null, model: null, ruedas: [], pintura: [], ojos: null, volante: null, interior: [], vidrios: [] }, EXTRAS = { elite: ELITE, refine: REFINE, aventura: AVENTURA };
 const interiorCoche = [];                       // mallas del interior del coche (se ocultan con la cámara lejos y fuera del coche)
 const volante = { obj: null, q0: new THREE.Quaternion(), giro: 3 };   // eje de la columna = Y local del nodo Volante
 const _qVol = new THREE.Quaternion(), _ejeY = new THREE.Vector3(0, 1, 0);
 const OJOS = new THREE.Vector3(0.35, 1.35, -0.06);                   // ojos del conductor en el espacio de tilt (se corrige con el socket al cargar)
-preTarea("carro", 3.6); preTarea("conductor", 1.5);
+preTarea("carro", 3.6); preTarea("conductor", 2);
 loader.load("../modelo/" + MODELO, (gltf) => {
   const model = gltf.scene; tilt.add(model); model.updateMatrixWorld(true);
+  ajustaArena(THREE, model);   // largo 4,34 m, ancho 1,79 m, alto 1,68 m, ejes a 2,62 m (el modelo medía 4,15 x 2,00 x 1,83)
   LODM.reducir(model, Math.round(4096 * CALIDAD.tex));   // calidad alta/ultra: sin cambios (tope 4096); media 2048; baja 1024
   model.traverse((o) => {
     if (/^(Acc_|Sombra)/.test(o.name)) o.visible = false;
@@ -1983,11 +2099,14 @@ loader.load("../modelo/" + MODELO, (gltf) => {
     roll.attach(w); if (delantera && cal) steer.attach(cal);
     ruedas.push({ steer, roll, delantera, r: (box.max.y - box.min.y) / 2, lado: Math.sign(c.x) });
   }
+  CARRO.arena = model; CARRO.ruedasArena = ruedas.slice(); model.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (/^Arena_Body/.test(m.name) && !CARRO.pintura.includes(m)) CARRO.pintura.push(m); });
   volante.obj = model.getObjectByName("Volante");
   if (volante.obj) volante.q0.copy(volante.obj.quaternion);
   model.traverse((o) => { if (o.isMesh && /^(Interior|Volante)/.test(o.name)) { o.castShadow = false; o.layers.disable(1); interiorCoche.push(o); } });   // el interior (~300 000 triángulos) no proyecta sombra ni entra en la pasada de AO: la carrocería ya lo tapa
   const sock = model.getObjectByName("SOCKET_Cam_Conductor");
   if (sock) tilt.worldToLocal(sock.getWorldPosition(OJOS));
+  CARRO.ojosArena = OJOS.clone(); CARRO.volArena = { obj: volante.obj, q0: volante.q0.clone() }; CARRO.interiorArena = interiorCoche.slice();   // para volver al Arena tras conducir un Elite/Refine
+  CARRO.lucesArena = { faro: mats.faro.slice(), piloto: mats.piloto.slice() };   // ópticas que enciende el motor (Faro_luz / Piloto_luz) del Arena
   puerta = model.getObjectByName("Puerta_DI");
   preAv("carro", 1); listo();
 }, (e) => {
@@ -2010,7 +2129,7 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyL") { luces = !luces; aviso(luces ? "Luces encendidas" : "Luces apagadas"); }
   if (e.code === "KeyK") setClima((climaIdx + 1) % 3, true);
   if (e.code === "KeyN") { const esNoche = noche > 0.5; REL.hora = esNoche ? 8 : 20; aviso(esNoche ? "Amanece · 08:00" : "Anochece · 20:00"); }   // salta al amanecer o al anochecer (el reloj sigue corriendo)
-  if (e.code === "KeyC" && modo === "manejo") { camModo = (camModo + 1) % 3; aviso(["Cámara trasera", "Cámara alta", "Cámara interior"][camModo]); }
+  if (e.code === "KeyC" && modo === "manejo") { camModo = (camModo + 1) % (CARRO.actual === "arena" || EXTRAS[CARRO.actual]?.ojos ? 3 : 2); aviso(["Cámara trasera", "Cámara alta", "Cámara interior"][camModo]); }
   if (e.code === "KeyR") reinicia();
   if (e.code === "KeyF" || e.code === "KeyE") accion();
   if (e.code === "KeyH") claxon = true;
@@ -2102,8 +2221,12 @@ function paso(dt) {
 // El grupo `pj` es hijo de la escena a pie y de `tilt` dentro del carro (en el inicio de Entrar: ENT.sx/sz/rumbo). Para que el fundido
 // Idle/Caminar -> Entrar -> Manejar no salte, al cargar se rebasan al marco de ese inicio las pistas de la raíz DEF-spine de Entrar y Manejar.
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a)), suave = (u) => u * u * (3 - 2 * u);
-const ENT = { sx: 0, sz: 0, rumbo: 0 };         // inicio de Entrar (espacio del carro), se lee de conductor.json
-let VCAM = 1.3762;                              // m/s del clip Caminar a timeScale 1 (conductor.json)
+// Aquiles (modelo/aquiles.glb, rig Mixamo): clips en el lugar walk/run/idle/sit y driving/entering_car. Altura de la malla 1,0 u -> x1,65 = 1,65 m; en el GLB mira a +X (el carro, a +Z): el modelo lleva giro -90 deg.
+// Su armature queda en O (espacio del carro): el centro del aro del volante del Arena (0,348; 1,03; 0,217) menos (0,330; 0,037; 0,452) u x1,75 del armature -> (0,283; 0,239; -0,360), con los pies del inicio de entering_car justo en la calle (y = 0).
+// La subida arranca con la cadera 1,025 u a la izquierda de O: inicio de Entrar en el espacio del carro = O + (1,025 x 1,75; 0,119 x 1,75).
+const AQ = { esc: 1.65, O: [0.2504, 0.2842, -0.3224], cuerpo: null };   // 1,65 m: con el techo del Arena a 1,68 m (ficha) no cabe a 1,75; O = centro del volante (0,3115; 1,03; 0,2221) - (0,037; 0,452; 0,330) u x 1,65
+const ENT = { sx: AQ.O[0] + 1.025 * AQ.esc, sz: AQ.O[2] + 0.119 * AQ.esc, rumbo: -Math.PI / 2 };   // inicio de Entrar (espacio del carro), de cara al carro (hacia -X)
+let VCAM = 1.35, VRUN = 3.3;                    // m/s de los clips walk y run a timeScale 1 (el timeScale se ajusta a la velocidad real)
 const R_PIE = 0.35, FOOT_Y = 0.02, ALCANCE = 2.5, CAJA = { hx: 0.9, hz: 2.15 }, PIE0 = { lx: 4.9, lz: 0.4 };   // PIE0: a ~4 m de la puerta del conductor
 const pj = new THREE.Group(); scene.add(pj);
 const P = { x: 0, z: 0, y: 0, hd: 0, v: 0, dx: 0, dz: 1, cy: 0 };   // a pie: posición, rumbo del cuerpo, velocidad, dirección de marcha, azimut base de la cámara
@@ -2113,33 +2236,25 @@ let fo = S;                                     // foco (S o P) para sombra, min
 const cPos = new THREE.Vector3(), cTgt = new THREE.Vector3(), bPos = new THREE.Vector3(), bTgt = new THREE.Vector3(), ultPos = new THREE.Vector3(), ultTgt = new THREE.Vector3();
 let camMezcla = 0, camManeja = false;
 
-function listo() { if (--pend) return; arrancado = true; aviso("WASD caminar · F subir al carro"); }   // el juego queda visible debajo y la pantalla blanca se desvanece (fade) encima
-Promise.all([fetch("../modelo/conductor.json").then((r) => r.json()), loader.loadAsync("../modelo/conductor.glb", (e) => preAv("conductor", e.total ? e.loaded / e.total * 0.97 : 0.5))]).then(([j, g]) => {
-  [ENT.sx, ENT.sz] = j.entrar.cuadro0.suelo_xz; ENT.rumbo = j.entrar.cuadro0.rumbo_rad; VCAM = j.caminar.velocidad;
-  curva = j.entrar.puerta.curva_rotacion_y_rad; curvaDt = j.entrar.puerta.curva_dt_s; puertaMax = Math.min(...curva);
-  const m = g.scene; pj.add(m);
-  m.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.frustumCulled = false; } });   // sin culling: la pose sentada queda lejos de la esfera del reposo
-  cabeza = m.getObjectByName("Conductor_Cabeza");
-  // rebase de la raíz de Entrar/Manejar al marco del inicio de Entrar: p' = R(-rumbo)·(p - s), q' = q(-rumbo)·q
-  const qi = new THREE.Quaternion().setFromAxisAngle(_ejeY, -ENT.rumbo), p1 = new THREE.Vector3(), q1 = new THREE.Quaternion();
-  for (const c of g.animations) if (c.name === "Entrar" || c.name === "Manejar") for (const tr of c.tracks) {
-    const v = tr.values;
-    if (tr.name === "DEF-spine.position") for (let i = 0; i < v.length; i += 3) p1.set(v[i] - ENT.sx, v[i + 1], v[i + 2] - ENT.sz).applyQuaternion(qi).toArray(v, i);
-    else if (tr.name === "DEF-spine.quaternion") for (let i = 0; i < v.length; i += 4) q1.fromArray(v, i).premultiply(qi).toArray(v, i);
-  }
+function listo() { if (--pend) return; arrancado = true; aviso("WASD caminar · Shift correr · E subir al carro"); }   // el juego queda visible debajo y la pantalla blanca se desvanece (fade) encima
+loader.loadAsync("../modelo/aquiles.glb", (e) => preAv("conductor", e.total ? e.loaded / e.total * 0.97 : 0.5)).then((g) => {
+  const m = g.scene; m.rotation.y = -Math.PI / 2; m.scale.setScalar(AQ.esc); pj.add(m);   // el modelo mira a +X: se gira para que mire a +Z como el resto del juego
+  m.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.frustumCulled = false; if (o.morphTargetInfluences?.length) AQ.cuerpo = o; } });   // sin culling: la pose sentada queda lejos de la esfera del reposo
+  cabeza = m;                                    // en la cámara interior no se dibuja el personaje (los ojos quedarían dentro de la cabeza)
   mixer = new THREE.AnimationMixer(m);
-  for (const c of g.animations) acts[c.name] = mixer.clipAction(c);
-  acts.Entrar.setLoop(THREE.LoopOnce, 1).clampWhenFinished = true;
+  const NOM = { idle: "Idle", walk: "Caminar", run: "Correr", sit: "Sentado", driving: "Manejar", entering_car: "Entrar" };
+  for (const c of g.animations) acts[NOM[c.name] ?? c.name] = mixer.clipAction(c);
+  acts.Entrar.setLoop(THREE.LoopOnce, 1).clampWhenFinished = true; locoInit(m);
   mixer.addEventListener("finished", (e) => { if (e.action === acts.Entrar) finPend = true; });   // se atiende tras mixer.update (no se toca el mixer dentro de su propio bucle)
   reinicia(); preAv("conductor", 1); listo();
-}).catch((err) => { console.error(err); $("pct").textContent = "Error al cargar el conductor"; });
+}).catch((err) => { console.error(err); $("pct").textContent = "Error al cargar a Aquiles"; });
 
 const aMundo = (lx, lz, o) => o.set(S.x + lx * Math.cos(S.hd) + lz * Math.sin(S.hd), 0, S.z - lx * Math.sin(S.hd) + lz * Math.cos(S.hd));   // espacio del carro -> mundo (xz)
 const pjMundo = (o) => pj.parent === tilt ? aMundo(pj.position.x, pj.position.z, o) : o.set(P.x, 0, P.z);
 const ponPuerta = (a) => { if (puerta) puerta.rotation.y = a; };
-function curvaEn(t) { const f = clamp(t / curvaDt, 0, curva.length - 1), i = Math.min(Math.floor(f), curva.length - 2); return lerp(curva[i], curva[i + 1], f - i); }
+function curvaEn(t) { return puertaMax * (t < 3.8 ? suave(clamp(t / 0.9, 0, 1)) : 1 - suave(clamp((t - 3.8) / 1.4, 0, 1))); }   // puerta del conductor durante entering_car (5,5 s)
 function anim(n, fade = 0.2) {                  // fundido al clip n (si ya es el actual no hace nada)
-  const a = acts[n]; if (a === actual) return a;
+  const a = acts[n]; if (LOCO.activo) { locoCede(fade); actual = null; } if (a === actual) return a;
   a.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).play();
   if (actual) actual.crossFadeTo(a, fade, false);
   actual = a; return a;
@@ -2148,6 +2263,8 @@ function quieto(dt) {                           // a pie el carro queda detenido
   S.vx = S.vz = S.vf = S.vl = S.yaw = S.vfPrev = 0; S.aLong = lerp(S.aLong, 0, Math.min(1, 6 * dt)); S.steer += clamp(-S.steer, -5.5 * dt, 5.5 * dt);
 }
 function reinicia() {                           // R y arranque: carro en SPAWN, personaje de pie en Idle a ~4 m de la puerta del conductor
+  for (const v of VEHICULOS) if (v.pseudo) retira(v); else devuelve(v); CARRO.v = null;   // todos los vehículos vuelven a su sitio y el Arena inicial se conduce de nuevo
+  if (CARRO.actual !== "arena" || CARRO.pintura[0]?.color.getHexString() !== "ffffff") ponModeloCoche("orig");   // vuelve al Arena Pro original, sin pintura
   Object.assign(S, { x: SPAWN.x, z: SPAWN.z, hd: SPAWN.hd, vx: 0, vz: 0, steer: 0 }); quieto(1); camAng = SPAWN.hd;
   if (!mixer) return;
   mixer.stopAllAction(); actual = null; finPend = false; bajaT = -1; ponPuerta(0);
@@ -2156,17 +2273,93 @@ function reinicia() {                           // R y arranque: carro en SPAWN,
   orb.yaw = orb.pitch = 0; camDist = 3.8;
   pj.position.set(P.x, FOOT_Y + P.y, P.z); pj.rotation.set(0, P.hd, 0);
 }
-function accion() { if (modo === "pie") subir(); else if (modo === "manejo") bajar(); }
-function subir() {
+
+// ───────────────────────── Abordar los vehículos del mapa ─────────────────────────
+// F junto a un vehículo colocado desde el editor: el carro conducible pasa a ese sitio con el modelo y el color del vehículo (el del mapa desaparece). El Arena Pro entra con la animación de puerta; el Elite entra directo.
+const construyeRuedas = (model) => {   // mismo montaje de ruedas que el Arena: cada una gira en su centro y las delanteras además dirigen
+  const out = [];
+  for (const [n, delantera] of [["Rueda_DD", 1], ["Rueda_DI", 1], ["Rueda_TD", 0], ["Rueda_TI", 0]]) {
+    const w = model.getObjectByName(n); if (!w) continue; model.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(w), c = model.worldToLocal(box.getCenter(new THREE.Vector3())), steer = new THREE.Group(), roll = new THREE.Group();
+    steer.position.copy(c); model.add(steer); steer.add(roll); steer.updateMatrixWorld(true); roll.attach(w);
+    out.push({ steer, roll, delantera, r: (box.max.y - box.min.y) / 2, lado: Math.sign(c.x) });
+  }
+  return out;
+};
+// cabina conducible: ojos (SOCKET_Cam_Conductor), volante (pivote, +Y = columna), mallas del Interior (sin sombra ni AO) y vidrios (opacidad original guardada para la cámara interior)
+const cabinaVehiculo = (X, mdl, vidrios) => {
+  mdl.updateMatrixWorld(true);
+  const sock = mdl.getObjectByName("SOCKET_Cam_Conductor"), vol = mdl.getObjectByName("Volante"), int = mdl.getObjectByName("Interior"), set = new Set();
+  X.ojos = sock ? mdl.worldToLocal(sock.getWorldPosition(new THREE.Vector3())) : null;   // la raíz del glTF queda en la identidad bajo tilt
+  X.volante = vol ? { obj: vol, q0: vol.quaternion.clone() } : null;
+  for (const raiz of [int, vol]) raiz?.traverse((o) => { if (o.isMesh) set.add(o); });
+  X.interior = [...set]; for (const o of X.interior) { o.castShadow = false; o.layers.disable(1); }
+  mdl.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) if (vidrios.includes(m.name) && !X.vidrios.some((v) => v.m === m)) X.vidrios.push({ m, op: m.opacity }); });
+  X.luz = { faro: [], piloto: [] };   // ópticas propias (Faro_luz / Piloto_luz): las enciende el motor como las del Arena (luces, freno)
+  mdl.traverse((o) => { if (o.isMesh) for (const m of [].concat(o.material)) { if (m.name === "Faro_luz" && !X.luz.faro.includes(m)) { m.emissive.set(0xffffff); m.emissiveIntensity = 0; X.luz.faro.push(m); } if (m.name === "Piloto_luz" && !X.luz.piloto.includes(m)) { m.emissive.set(0xff1408); m.emissiveIntensity = 0; X.luz.piloto.push(m); } } });
+};
+const cargaCond = (arch, X, pint, vidrios) => X.prom ??= loader.loadAsync("./modelos/" + arch + "_conducible.glb").catch((e) => { console.warn(`${arch}_conducible.glb no cargó (${e?.message ?? e}): se usa el lod0, sin cámara interior`); return loader.loadAsync("./modelos/" + arch + "_lod0.glb"); }).then((g) => {   // sin el conducible (aún no generado): el lod0 de siempre, sin cámara interior
+  const mdl = g.scene; LODM.reducir(mdl, Math.round(2048 * CALIDAD.tex));
+  mdl.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.layers.enable(1); for (const m of [].concat(o.material)) if (m.name === pint && !X.pintura.includes(m)) X.pintura.push(m); } });
+  X.ruedas = construyeRuedas(mdl); cabinaVehiculo(X, mdl, vidrios); X.model = mdl; return X;
+});
+const cargaElite = () => cargaCond("vehiculo_elite", ELITE, "Elite_Pintura", ["M_Vidrio_Elite", "M_Vidrio_Lateral_Delantero"]);
+const cargaRefine = () => cargaCond("vehiculo_refine", REFINE, "Refine_Pintura", ["M_Vidrio_Refine", "M_Vidrio_Parabrisas_Refine"]);
+const cargaAventura = () => cargaCond("vehiculo_aventura", AVENTURA, "Aventura_Pintura", ["M_Vidrio_Aventura"]);
+function activaCabina(ojos, vol, int, luz) { OJOS.copy(ojos); volante.obj = vol?.obj ?? null; if (vol) volante.q0.copy(vol.q0); interiorCoche.length = 0; interiorCoche.push(...int);
+  if (luz) { mats.faro.length = 0; mats.faro.push(...luz.faro); mats.piloto.length = 0; mats.piloto.push(...luz.piloto); } }   // las ópticas que se encienden son las del vehículo activo   // la cámara interior, el volante y el interior que se muestra son los del vehículo activo
+const tintaPintura = (lista, col) => { for (const m of lista) { m.userData.color0 ??= "#" + m.color.getHexString(); m.color.set(/^#[0-9a-f]{6}$/i.test(col ?? "") ? col : m.userData.color0); } };   // sin color: el del archivo (blanco en Arena/Elite/Refine, negro original en la Aventura)
+function ponModeloCoche(cual, color) {
+  if (!CARRO.arena) return;
+  const X = EXTRAS[cual];
+  for (const q of Object.values(EXTRAS)) if (q.model && q !== X) { q.model.visible = false; tilt.remove(q.model); }
+  if (X?.model) { tilt.add(X.model); X.model.visible = true; CARRO.arena.visible = false; ruedas.length = 0; ruedas.push(...X.ruedas); tintaPintura(X.pintura, color); CARRO.actual = cual; activaCabina(X.ojos ?? CARRO.ojosArena, X.volante, X.interior, X.luz); if (camModo === 2 && !X.ojos) camModo = 0; }
+  else { CARRO.arena.visible = true; ruedas.length = 0; ruedas.push(...CARRO.ruedasArena); tintaPintura(CARRO.pintura, cual === "arena" ? color : undefined); CARRO.actual = "arena"; activaCabina(CARRO.ojosArena, CARRO.volArena, CARRO.interiorArena, CARRO.lucesArena); }
+}
+const vehiculoCercano = () => {
+  let best = null, bd = 1e9;
+  for (const v of VEHICULOS) { if (v.tomado) continue; const c = Math.cos(v.hd), sn = Math.sin(v.hd), ax = P.x - v.x, az = P.z - v.z, lx = ax * c - az * sn, lz = ax * sn + az * c, d = Math.hypot(Math.max(Math.abs(lx) - 1.0, 0), Math.max(Math.abs(lz) - 2.3, 0)); if (d < bd) { bd = d; best = v; } }
+  return bd <= 2.2 ? best : null;
+};
+// el carro que se deja no desaparece: vuelve a su punto del mapa (el Arena inicial, a una copia en SPAWN)
+const reponObst = (b) => { for (let a = Math.floor(b[0] / CELL); a <= Math.floor(b[1] / CELL); a++) for (let c = Math.floor(b[2] / CELL); c <= Math.floor(b[3] / CELL); c++) (obst.get(ck(a, c)) ?? obst.set(ck(a, c), []).get(ck(a, c))).push(b); };
+const devuelve = (v) => { if (!v.tomado) return; v.tomado = false; v.grupos?.forEach((g) => { g.visible = true; }); for (const b of v.cajas) reponObst(b); };
+const retira = (v) => { if (v.tomado) return; v.tomado = true; for (const b of v.cajas) quitaObst(b); v.grupos?.forEach((g) => { g.visible = false; }); };
+function dejaArena() {   // copia estática (sin interior) del Arena original en el punto de salida
+  let v = VEHICULOS.find((q) => q.pseudo); if (v) { devuelve(v); return v; }
+  const g = new THREE.Group(), cl = CARRO.arena.clone(true), quita = []; cl.traverse((o) => { if (o.isMesh) { if (/^(Interior|Volante)/.test(o.name)) quita.push(o); else { o.material = Array.isArray(o.material) ? o.material.map((m) => m.clone()) : o.material.clone(); for (const m of [].concat(o.material)) if (/^Arena_Body/.test(m.name)) m.color.set("#ffffff"); } } });
+  for (const o of quita) o.parent.remove(o);
+  g.add(cl); g.position.set(SPAWN.x, suelo(SPAWN.x, SPAWN.z), SPAWN.z); g.rotation.y = SPAWN.hd; scene.add(g);
+  const cs = Math.cos(SPAWN.hd), sn = Math.sin(SPAWN.hd), cajas = [];
+  for (const [lx, lz] of [[0, -1.5], [0, 0], [0, 1.5]]) { const wx = SPAWN.x + lx * cs + lz * sn, wz = SPAWN.z - lx * sn + lz * cs; cajas.push(addObst(wx - 1, wx + 1, wz - 1, wz + 1)); }
+  v = { id: "arena-spawn", modelo: "vehiculo-arena-pro", x: SPAWN.x, z: SPAWN.z, hd: SPAWN.hd, color: undefined, grupos: [g], cajas, tomado: false, pseudo: true }; VEHICULOS.push(v); return v;
+}
+async function abordar(v) {
+  const prev = CARRO.v ?? dejaArena(); if (prev !== v) devuelve(prev); CARRO.v = v;
+  v.tomado = true; for (const b of v.cajas) quitaObst(b); v.grupos?.forEach((g) => { g.visible = false; });
+  const tipo = v.modelo === "vehiculo-elite" ? "elite" : v.modelo === "vehiculo-refine" ? "refine" : v.modelo === "vehiculo-aventura" ? "aventura" : "arena", elite = tipo !== "arena"; if (tipo === "elite") await cargaElite(); else if (tipo === "refine") await cargaRefine(); else if (tipo === "aventura") await cargaAventura();
+  ponModeloCoche(tipo, v.color);
+  Object.assign(S, { x: v.x, z: v.z, hd: v.hd, vx: 0, vz: 0, steer: 0 }); S.y = suelo(S.x, S.z); quieto(1); camAng = v.hd; orb.yaw = orb.pitch = 0;
+  if (elite) {   // sin puertas animadas: el conductor sube directo y no se dibuja (el Elite no trae interior)
+    tilt.add(pj); pj.position.set(ENT.sx, FOOT_Y, ENT.sz); pj.visible = false; mixer.stopAllAction(); actual = null; anim("Manejar"); modo = "manejo"; P.v = 0; ponPuerta(0); secuenciaArranque(tipo); aviso("W acelerar · S frenar · E bajar · " + ({ refine: "Refine", aventura: "Aventura" }[tipo] ?? "Elite"));
+  } else {       // Arena Pro: el personaje se coloca a unos 4 m de la puerta y entra con la animación de siempre
+    aMundo(PIE0.lx, PIE0.lz, v3); P.x = v3.x; P.z = v3.z; P.y = suelo(P.x, P.z); P.hd = P.cy = S.hd - Math.PI / 2; P.v = 0; pj.position.set(P.x, FOOT_Y + P.y, P.z); pj.rotation.set(0, P.hd, 0); subir(true);
+  }
+}
+function accion() {
+  if (modo === "pie") { aMundo(ENT.sx, ENT.sz, v3); if (Math.hypot(v3.x - P.x, v3.z - P.z) <= ALCANCE) return subir(); const v = vehiculoCercano(); if (v) return abordar(v); subir(); }
+  else if (modo === "manejo") bajar();
+}
+function subir(forzar) {
   aMundo(ENT.sx, ENT.sz, v3);
-  if (Math.hypot(v3.x - P.x, v3.z - P.z) > ALCANCE) return aviso("Acércate a la puerta del conductor");
+  if (!forzar && Math.hypot(v3.x - P.x, v3.z - P.z) > ALCANCE) return aviso("Acércate a la puerta del conductor o a un vehículo");
   const c = Math.cos(S.hd), s = Math.sin(S.hd), ax = P.x - S.x, az = P.z - S.z, lx = ax * c - az * s, lz = ax * s + az * c, d = Math.hypot(ENT.sx - lx, ENT.sz - lz);
   tilt.add(pj); pj.position.set(lx, FOOT_Y, lz); pj.rotation.set(0, wrap(P.hd - S.hd), 0);   // mismo sitio, ahora en el marco del carro
   Object.assign(ent, { fase: 0, t: 0, dur: Math.max(0.4, d / 1.4), x0: lx, z0: lz, y0: pj.rotation.y, dy: wrap(ENT.rumbo - pj.rotation.y) });
   modo = "entrando"; bajaT = -1; P.v = 0;
   if (d > 0.2) anim("Caminar").timeScale = d / ent.dur / VCAM; else anim("Idle");   // se acerca caminando al punto de inicio (a ~1,4 m/s, a lo sumo ~1,8 s) y gira hacia la puerta
 }
-function finEntrar() { acts.Entrar.stop(); actual = null; anim("Manejar"); modo = "manejo"; ponPuerta(0); camAng = P.cy; aviso("W acelerar · S frenar · F bajar"); }
+function finEntrar() { secuenciaArranque(CARRO.actual); acts.Entrar.stop(); actual = null; anim("Manejar"); modo = "manejo"; ponPuerta(0); camAng = P.cy; aviso("W acelerar · S frenar · E bajar"); }
 function bajar() {
   if (Math.abs(S.vf) >= 0.5) return aviso("Detén el carro para bajar");
   quieto(1); aMundo(ENT.sx + 0.35, ENT.sz, v3);       // 35 cm hacia afuera: la puerta abierta a -67° no lo toca
@@ -2193,17 +2386,99 @@ function choques() {                            // farolas (cajas), carrocería 
   }
   { const o = empuja(P.x, P.z); if (o) { P.x = o.x; P.z = o.z; } }
 }
+// ───────────────────────── Locomoción: mezcla de ciclos, fase de zancada, IK de piernas y sombras de contacto ─────────────────────────
+// Datos MEDIDOS en Blender sobre los clips de Aquiles (blender/vehiculos/aq_diag3.py): cada clip trae 2 ciclos de zancada (walk 2,333 s -> ciclo 1,167 s; run 1,25 s -> ciclo 0,625 s); velocidad del pie de apoyo
+// 0,58 u/s caminando y ~1,9 u/s corriendo (la altura de la malla es 1 u y se escala x1,65): 0,96 m/s y 3,1 m/s. El motor suponía 1,35 y 3,3 m/s: al caminar el pie resbalaba ~40 %.
+// off* = instante (s) del apoyo del pie izquierdo dentro del clip; la fase 0 de la zancada es ese apoyo.
+const LOCO = { activo: false, fase: 0, wI: 1, wW: 0, wR: 0, vW: 0.96, vR: 3.1, Tw: 7 / 6, Tr: 0.625, cw: 7 / 3, cr: 1.25, offW: 0.667, offR: 0.208, VCAMINA: 1.25, VCORRE: 3.3, ik: true, offPelvis: 0, enSitio: false, piernas: [], hips: null, sombras: [] };
+const _lv = new THREE.Vector3(), _lq = new THREE.Quaternion(), _la = new THREE.Vector3(), _lb = new THREE.Vector3(), _lc = new THREE.Vector3(), _ld = new THREE.Vector3(), _le = new THREE.Quaternion(), _lf = new THREE.Quaternion(), _lg = new THREE.Quaternion();
+function locoInit(raiz) {   // localiza los huesos de las piernas (Mixamo; GLTFLoader quita los «:» de los nombres) y crea las sombras de contacto
+  const hueso = (re) => { let b = null; raiz.traverse((o) => { if (!b && o.isBone && re.test(o.name)) b = o; }); return b; };
+  LOCO.hips = hueso(/Hips$/);
+  for (const lado of ["Left", "Right"]) {
+    const up = hueso(new RegExp(lado + "UpLeg$")), rod = hueso(new RegExp(lado + "Leg$")), pie = hueso(new RegExp(lado + "Foot$")); if (!up || !rod || !pie) { LOCO.ik = false; console.warn("IK: faltan huesos de la pierna", lado); return; }
+    LOCO.piernas.push({ up, rod, pie, bloqueado: false, lx: 0, lz: 0, cx: 0, cz: 0, l1: 0, l2: 0, y: 0 });
+  }
+  raiz.updateMatrixWorld(true);
+  for (const q of LOCO.piernas) { q.up.getWorldPosition(_la); q.rod.getWorldPosition(_lb); q.pie.getWorldPosition(_lc); q.l1 = _la.distanceTo(_lb) / AQ.esc; q.l2 = _lb.distanceTo(_lc) / AQ.esc; }   // longitudes en el espacio del modelo (sin escala)
+  const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32); gr.addColorStop(0, "rgba(0,0,0,0.55)"); gr.addColorStop(0.6, "rgba(0,0,0,0.22)"); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const tx = new THREE.CanvasTexture(c), mt = new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -3 });
+  for (let i = 0; i < 2; i++) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.5).rotateX(-Math.PI / 2), mt.clone()); m.renderOrder = 2; m.visible = false; scene.add(m); LOCO.sombras.push(m); }
+}
+const suavizaW = (a, b, dt, t) => a + (b - a) * (1 - Math.exp(-dt / t));
+function locoAnim(dt, vAnim, enSitio) {   // mezcla idle/caminar/correr por velocidad; las dos zancadas comparten FASE (no se avanza por tiempo sino por distancia recorrida)
+  const A = acts; if (!A.Idle || !A.Caminar || !A.Correr) return;
+  if (!LOCO.activo) {   // la locomoción toma el control desde el clip actual
+    LOCO.activo = true; LOCO.wI = actual === A.Idle ? Math.max(0.01, A.Idle.getEffectiveWeight()) : 0; LOCO.wW = LOCO.wR = 0; LOCO.fase = 0;
+    for (const a of [A.Caminar, A.Correr]) { a.enabled = true; a.setLoop(THREE.LoopRepeat, Infinity); a.play(); a.setEffectiveTimeScale(0); a.setEffectiveWeight(0); }
+    if (actual !== A.Idle) { A.Idle.reset().setEffectiveTimeScale(1).setEffectiveWeight(0).play(); }
+  }
+  const mov = clamp((vAnim - 0.05) / 0.4, 0, 1), m = mov * mov * (3 - 2 * mov), br = clamp((vAnim - 2.1) / 0.9, 0, 1), b = br * br * (3 - 2 * br);
+  const tI = 1 - m, tW = m * (1 - b), tR = m * b, T = 0.11;   // transición ~0,15-0,25 s
+  LOCO.wI = suavizaW(LOCO.wI, tI, dt, T); LOCO.wW = suavizaW(LOCO.wW, tW, dt, T); LOCO.wR = suavizaW(LOCO.wR, tR, dt, T);
+  const L = lerp(LOCO.vW * LOCO.Tw, LOCO.vR * LOCO.Tr, b);   // metros por ciclo (zancada doble)
+  if (vAnim > 0.05) LOCO.fase = (LOCO.fase + vAnim * dt / L) % 1; else if (LOCO.wW + LOCO.wR < 0.02) LOCO.fase = 0;   // parado: el próximo paso empieza con el pie izquierdo
+  A.Idle.setEffectiveWeight(LOCO.wI); A.Caminar.setEffectiveWeight(LOCO.wW); A.Correr.setEffectiveWeight(LOCO.wR);
+  A.Caminar.time = (LOCO.fase * LOCO.Tw + LOCO.offW) % LOCO.cw; A.Correr.time = (LOCO.fase * LOCO.Tr + LOCO.offR) % LOCO.cr;
+  actual = A.Idle; LOCO.enSitio = !!enSitio;
+}
+function locoCede(fade) {   // otro clip (subir, bajar...) toma el control: los clips de locomoción se funden hacia fuera
+  if (!LOCO.activo) return; LOCO.activo = false;
+  for (const a of [acts.Idle, acts.Caminar, acts.Correr]) { if (a && a.getEffectiveWeight() > 0.001) { a.setEffectiveTimeScale(a === acts.Idle ? 1 : 0.0); a.fadeOut(fade); } }
+  for (const m of LOCO.sombras) m.visible = false; if (cabeza) cabeza.position.y = 0; LOCO.offPelvis = 0;
+}
+function alinea(hueso, dirAct, dirNueva) {   // gira el hueso (en el mundo) para que su dirección actual pase a ser la nueva
+  _le.setFromUnitVectors(dirAct, dirNueva); hueso.getWorldQuaternion(_lf); _lf.premultiply(_le); const pa = hueso.parent; pa.getWorldQuaternion(_lg).invert(); hueso.quaternion.copy(_lg.multiply(_lf)); hueso.updateMatrixWorld(true);
+}
+function locoIK(dt) {   // tras el mixer: pies bloqueados en el apoyo, adaptados al terreno (aceras, bordillos, rampas) por IK de 2 huesos; la pelvis baja si un pie queda más abajo
+  if (!LOCO.activo || !LOCO.ik || !LOCO.piernas.length) { for (const m of LOCO.sombras) m.visible = false; return; }
+  const raiz = cabeza, baseY = pj.position.y, esc = AQ.esc, mueve = P.v > 0.4;
+  pj.updateMatrixWorld(true);
+  // 1) terreno bajo cada pie -> desplazamiento de la pelvis
+  let dmin = 0; const info = [];
+  for (const q of LOCO.piernas) { q.pie.getWorldPosition(_la); const hRel = _la.y - LOCO.offPelvis - baseY, plantado = hRel < 0.095; let cx = q.cx, cz = q.cz;
+    if (plantado && mueve) { if (!q.bloqueado) { q.bloqueado = true; q.lx = _la.x; q.lz = _la.z; } cx = clamp(q.lx - _la.x, -0.3, 0.3); cz = clamp(q.lz - _la.z, -0.3, 0.3); if (Math.hypot(q.lx - _la.x, q.lz - _la.z) > 0.45) q.bloqueado = false; }
+    else { q.bloqueado = false; const k = Math.exp(-dt / 0.08); cx *= k; cz *= k; }
+    q.cx = cx; q.cz = cz; const tx = _la.x + cx, tz = _la.z + cz, g = suelo(tx, tz) - P.y; info.push([tx, tz, g, hRel]); if (g < dmin) dmin = g;
+  }
+  LOCO.offPelvis = suavizaW(LOCO.offPelvis, clamp(dmin * 0.75, -0.4, 0), dt, 0.1); raiz.position.y = LOCO.offPelvis / 1;   // baja todo el modelo (la pelvis arrastra el cuerpo)
+  pj.updateMatrixWorld(true);
+  // 2) IK por pierna
+  for (let i = 0; i < LOCO.piernas.length; i++) {
+    const q = LOCO.piernas[i], [tx, tz, g, hRel] = info[i]; q.pie.getWorldPosition(_lc); q.pie.getWorldQuaternion(_lq);   // pie animado (posición y orientación en el mundo)
+    _ld.set(tx, _lc.y + g, tz);   // objetivo: el pie animado desplazado por el desnivel del terreno
+    q.up.getWorldPosition(_la); q.rod.getWorldPosition(_lb);
+    const l1 = q.l1 * esc, l2 = q.l2 * esc; _lv.copy(_ld).sub(_la); let d = _lv.length(); if (d < 1e-4) continue; const dmax = (l1 + l2) * 0.999; if (d > dmax) { _lv.multiplyScalar(dmax / d); d = dmax; _ld.copy(_la).add(_lv); }
+    const dir = _lv.clone().divideScalar(d); const a = (l1 * l1 - l2 * l2 + d * d) / (2 * d), h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    // dirección de la rodilla: la de la animación (componente de la rodilla perpendicular al eje cadera-tobillo)
+    const eje = _lc.clone().sub(_la).normalize(), kn = _lb.clone().sub(_la); const pol = kn.sub(eje.clone().multiplyScalar(kn.dot(eje))); if (pol.lengthSq() < 1e-8) pol.set(Math.sin(P.hd), 0, Math.cos(P.hd)); pol.normalize();
+    const polN = pol.sub(dir.clone().multiplyScalar(pol.dot(dir))).normalize(), K = _la.clone().add(dir.clone().multiplyScalar(a)).add(polN.multiplyScalar(h));
+    alinea(q.up, _lb.clone().sub(_la).normalize(), K.clone().sub(_la).normalize());
+    q.rod.getWorldPosition(_lb); q.pie.getWorldPosition(_lc);
+    alinea(q.rod, _lc.clone().sub(_lb).normalize(), _ld.clone().sub(_lb).normalize());
+    { /* el pie conserva su orientación animada */ const pa = q.pie.parent; pa.getWorldQuaternion(_lg).invert(); q.pie.quaternion.copy(_lg.multiply(_lq)); q.pie.updateMatrixWorld(true); }
+    q.pie.getWorldPosition(_lb); q.err = _lb.distanceTo(_ld); q.dmax = dmax; q.dist = d;
+    const sh = LOCO.sombras[i], alto = Math.max(0, _ld.y - (g + P.y + FOOT_Y)); sh.visible = true; sh.position.set(_ld.x, g + P.y + FOOT_Y + 0.015, _ld.z); sh.rotation.y = P.hd; sh.material.opacity = 0.9 * clamp(1 - (alto - 0.05) / 0.3, 0, 1);
+  }
+}
 function caminar(dt) {                          // WASD / flechas relativos a la cámara
   const az = P.cy - orb.yaw, sa = Math.sin(az), ca = Math.cos(az);
   const av = (k("KeyW", "ArrowUp") ? 1 : 0) - (k("KeyS", "ArrowDown") ? 1 : 0), lr = (k("KeyD", "ArrowRight") ? 1 : 0) - (k("KeyA", "ArrowLeft") ? 1 : 0);
   const mx = sa * av - ca * lr, mz = ca * av + sa * lr, ml = Math.hypot(mx, mz);
-  if (ml > 0.01) { P.dx = mx / ml; P.dz = mz / ml; P.hd += wrap(Math.atan2(P.dx, P.dz) - P.hd) * Math.min(1, 12 * dt); }   // el cuerpo gira con suavidad hacia la marcha
-  P.v += clamp((ml > 0.01 ? VCAM : 0) - P.v, -14 * dt, 14 * dt);
+  const corre = k("ShiftLeft", "ShiftRight");   // Shift: correr
+  let alin = 1, giraSitio = false;
+  if (ml > 0.01) {   // el cuerpo gira con velocidad angular limitada (más lenta al correr) y avanza en la dirección en que mira; con un giro grande primero se frena y gira (pivota)
+    const obj = Math.atan2(mx, mz), err = wrap(obj - P.hd), tasa = P.v > 2.4 ? 5.0 : P.v > 1.2 ? 7.0 : 10.5; P.hd += clamp(err, -tasa * dt, tasa * dt);
+    const e2 = Math.abs(wrap(obj - P.hd)); alin = clamp(1 - (e2 - 0.3) / 1.1, 0, 1); giraSitio = P.v < 0.45 && e2 > 0.25;
+  }
+  P.dx = Math.sin(P.hd); P.dz = Math.cos(P.hd);
+  const vObj = ml > 0.01 ? (corre ? LOCO.VCORRE : LOCO.VCAMINA) * alin : 0;
+  P.v += (vObj - P.v) * (1 - Math.exp(-(vObj > P.v ? (corre ? 5.5 : 8) : 10) * dt)); if (vObj === 0 && P.v < 0.03) P.v = 0;   // arranque y frenado progresivos
   const ox = P.x, oz = P.z, h0 = sueloBase(ox, oz), nx = ox + P.dx * P.v * dt, nz = oz + P.dz * P.v * dt;   // el límite se mide sin los separadores (sueloBase): Juan los salta siempre   // límite de paso: no sube desniveles de más de 0,5 m (hay que usar rampas o escaleras); se desliza por el obstáculo
   if (sueloBase(nx, nz) - h0 <= 0.5) { P.x = nx; P.z = nz; } else if (sueloBase(nx, oz) - h0 <= 0.5) P.x = nx; else if (sueloBase(ox, nz) - h0 <= 0.5) P.z = nz;
   const dd = wrap(P.hd - az); if (av > 0 && Math.abs(dd) < 1) P.cy += dd * Math.min(1, 0.7 * dt);   // en diagonal hacia adelante la cámara se va colocando detrás
   choques();
-  if (P.v > 0.05) anim("Caminar").timeScale = P.v / VCAM; else anim("Idle");          // sin patinar: timeScale = velocidad real / velocidad del clip
+  locoAnim(dt, giraSitio ? 0.8 : P.v, giraSitio);   // mezcla de ciclos por velocidad (y pasos en el sitio al pivotar)          // sin patinar: timeScale = velocidad real / velocidad del clip
   P.y = lerp(P.y, suelo(P.x, P.z), Math.min(1, 14 * dt)); pj.position.set(P.x, FOOT_Y + P.y, P.z); pj.rotation.y = P.hd;
 }
 function personaje(dt) {
@@ -2212,7 +2487,7 @@ function personaje(dt) {
   else if (modo === "entrando" && !ent.fase) {  // alineación al inicio de Entrar, caminando, sin saltos
     ent.t += dt; const u = Math.min(1, ent.t / ent.dur);
     pj.position.set(lerp(ent.x0, ENT.sx, u), lerp(FOOT_Y, 0, u), lerp(ent.z0, ENT.sz, u)); pj.rotation.y = ent.y0 + ent.dy * suave(u);
-    if (u >= 1) { ent.fase = 1; anim("Entrar", 0.25); }
+    if (u >= 1) { ent.fase = 1; pj.position.set(AQ.O[0], AQ.O[1], AQ.O[2]); pj.rotation.set(0, 0, 0); anim("Entrar", 0.25); }   // la cadera del clip arranca justo donde caminaba
   }
   if (bajaT >= 0) {                             // al bajar: abre la puerta (0-0,5 s), el personaje aparece (0,45 s) y la puerta cierra (1,3-2 s)
     bajaT += dt;
@@ -2220,7 +2495,8 @@ function personaje(dt) {
     if (modo === "bajando" && bajaT >= 0.45) { modo = "pie"; pj.visible = true; }
     if (bajaT >= 2) bajaT = -1;
   }
-  mixer.update(dt);
+  mixer.update(dt); locoIK(dt);
+  if (AQ.cuerpo) { const t = actual === acts.Manejar ? 0.72 : actual === acts.Correr ? 0.45 : actual === acts.Entrar ? 0.72 * clamp(acts.Entrar.time / 5.5, 0, 1) : 0; AQ.cuerpo.morphTargetInfluences[0] = lerp(AQ.cuerpo.morphTargetInfluences[0], t, Math.min(1, 10 * dt)); }   // `grip`: manos semicerradas al correr y sobre el volante
   if (modo === "entrando" && ent.fase) ponPuerta(curvaEn(acts.Entrar.time));
   if (finPend) { finPend = false; finEntrar(); }
   cabeza.visible = !(modo === "manejo" && camModo === 2);   // en la cámara interior los ojos quedan dentro del cráneo
@@ -2273,7 +2549,70 @@ function audioInit() {
     golpeG = AC.createGain(); golpeG.gain.value = 0; const lp = AC.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 400;
     const n2 = AC.createBufferSource(); n2.buffer = buf; n2.loop = true; n2.connect(lp).connect(golpeG).connect(AC.destination); n2.start();
     const nl = AC.createBufferSource(); nl.buffer = buf; nl.loop = true; const hp = AC.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 1400; lluviaG = AC.createGain(); lluviaG.gain.value = 0; nl.connect(hp).connect(lluviaG).connect(AC.destination); nl.start();
+    mezcla = AC.createGain(); mezcla.gain.value = 1; mezcla.connect(AC.destination); cargaSonidos();
   } catch { AC = null; }
+}
+// ── muestras reales (sonidos/*.mp3, Freesound CC0; créditos en sonidos/CREDITOS.md). Se decodifican tras el primer gesto del usuario; mientras no estén, sigue sonando la síntesis. ──
+let mezcla; const SND = {}, PASOS = { caminar: [], correr: [] }, LAZO = {};
+const SND_ARCH = ["paso_caminar", "paso_correr", "enc_arena", "arr_arena", "enc_elite", "arr_elite", "enc_refine", "arr_refine", "ralenti_a", "ralenti_b", "cinturon_aviso", "cinturon_click", "claxon"];
+// por modelo: enc = encendido (llave/contacto/motor de arranque), arr = arranque del motor, ral = tramo estable de ralentí para el lazo, tono = tono base del lazo. [archivo, inicio s, duración s]
+const VEH_SND = { arena: { enc: ["enc_arena", 0.3, 0.95], arr: ["arr_arena", 0.9, 2.8], ral: ["ralenti_a", 3.5, 7.5], tono: 1.0 }, elite: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 5.2], ral: ["ralenti_b", 2.5, 7.5], tono: 0.9 }, refine: { enc: ["enc_refine", 0, 2.2], arr: ["arr_refine", 0.5, 5.0], ral: ["ralenti_a", 3.5, 7.5], tono: 0.78 }, aventura: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 5.2], ral: ["ralenti_b", 2.5, 7.5], tono: 0.82 } };   // la Aventura usa los sonidos del Elite, más grave
+async function cargaSonidos() {
+  await Promise.all(SND_ARCH.map(async (n) => { try { SND[n] = await AC.decodeAudioData(await (await fetch("./sonidos/" + n + ".mp3")).arrayBuffer()); } catch (e) { console.warn("sonido no cargó", n, e); } }));
+  if (SND.paso_caminar) PASOS.caminar = cortaPasos(SND.paso_caminar, 0.3);
+  if (SND.paso_correr) PASOS.correr = cortaPasos(SND.paso_correr, 0.24);
+}
+function cortaPasos(buf, largo) {   // un paso = un ataque del audio (subida brusca de energía); cada uno se recorta con su cola y se normaliza
+  const d = buf.getChannelData(0), sr = buf.sampleRate, W = Math.round(sr * 0.004), env = []; let pico = 0;
+  for (let i = 0; i + W <= d.length; i += W) { let q = 0; for (let j = 0; j < W; j++) q += d[i + j] * d[i + j]; const v = Math.sqrt(q / W); env.push(v); if (v > pico) pico = v; }
+  const umbral = pico * 0.22, out = []; let ultimo = -1e9;
+  for (let i = 6; i < env.length; i++) {
+    const antes = (env[i - 1] + env[i - 2] + env[i - 3] + env[i - 4] + env[i - 5]) / 5;
+    if (env[i] > umbral && antes < umbral * 0.4 && (i - ultimo) * 0.004 > 0.2) {
+      ultimo = i; const ini = Math.max(0, (i - 2) * W), n = Math.min(d.length - ini, Math.round(largo * sr)), b = AC.createBuffer(1, n, sr), o = b.getChannelData(0); let mx = 1e-6;
+      for (let j = 0; j < n; j++) { const f = Math.min(1, j / (0.003 * sr)) * Math.min(1, (n - j) / (0.06 * sr)); o[j] = d[ini + j] * f; mx = Math.max(mx, Math.abs(o[j])); }
+      const g = Math.min(8, 0.85 / Math.max(mx, 0.7 * pico)); for (let j = 0; j < n; j++) o[j] *= g; out.push(b);
+    }
+  }
+  return out;
+}
+let pasoDist = 0, pasoLado = 1, pasoUlt = -1;
+function pasoSuena(corre) {
+  const L = corre ? PASOS.correr : PASOS.caminar; if (!AC || !L.length) return;
+  let i = Math.floor(Math.random() * L.length); if (i === pasoUlt) i = (i + 1) % L.length; pasoUlt = i;   // no repite el mismo paso dos veces seguidas
+  const src = AC.createBufferSource(), g = AC.createGain(), pan = AC.createStereoPanner(); src.buffer = L[i]; src.playbackRate.value = 0.93 + Math.random() * 0.14; g.gain.value = (corre ? 0.7 : 0.55) * (0.8 + Math.random() * 0.4); pasoLado = -pasoLado; pan.pan.value = pasoLado * 0.12;
+  src.connect(g).connect(pan).connect(mezcla); src.start();
+}
+function pasos(dt) {   // distancia recorrida a pie -> un paso cada ~0,78 m caminando y ~1,15 m corriendo (sin patinar con la animación)
+  if (modo !== "pie" || !arrancado || P.v < 0.25) { pasoDist = Math.min(pasoDist, 0.3); return; }
+  const corre = P.v > (VCAM + VRUN) / 2; pasoDist += P.v * dt; const paso = corre ? 1.15 : 0.78;
+  if (pasoDist >= paso) { pasoDist -= paso; pasoSuena(corre); }
+}
+const corta = (nom, ini, dur, cuando, vol, tasa = 1) => {
+  const b = SND[nom]; if (!AC || !b) return null; const s = AC.createBufferSource(), g = AC.createGain(); s.buffer = b; s.playbackRate.value = tasa; const t = cuando, d = Math.min(dur, b.duration - ini) / tasa;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.setValueAtTime(vol, t + Math.max(0.02, d - 0.05)); g.gain.linearRampToValueAtTime(0, t + d);
+  s.connect(g).connect(mezcla); s.start(t, ini, Math.min(dur, b.duration - ini)); return { s, g, fin: t + d };
+};
+let ralSrc = null, ralG = null, ralListo = 0, ralTipo = "arena";
+function lazoRalenti(tipo) {   // tramo estable del ralentí con fundido cruzado entre el final y el principio: lazo sin chasquido
+  const V = VEH_SND[tipo], clave = V.ral[0] + V.ral[1]; if (LAZO[clave]) return LAZO[clave]; const b = SND[V.ral[0]]; if (!b) return null;
+  const sr = b.sampleRate, ini = Math.round(V.ral[1] * sr), n = Math.min(Math.round(V.ral[2] * sr), b.length - ini), xf = Math.round(0.6 * sr), d = b.getChannelData(0), out = AC.createBuffer(1, n - xf, sr), o = out.getChannelData(0);
+  for (let i = 0; i < n - xf; i++) { let v = d[ini + i]; if (i < xf) { const f = i / xf; v = v * f + d[ini + n - xf + i] * (1 - f); } o[i] = v; }
+  return (LAZO[clave] = out);
+}
+function secuenciaArranque(tipo) {   // al ponerse al volante: aviso del cinturón -> broche -> encendido (propio de cada modelo) -> arranque (propio) -> ralentí
+  if (!AC) return; const V = VEH_SND[tipo] ?? VEH_SND.arena, t = AC.currentTime + 0.15;
+  if (ralSrc) { try { ralSrc.stop(); } catch (e) {} ralSrc = null; }
+  const av = corta("cinturon_aviso", 0, 1.3, t, 0.5); corta("cinturon_click", 0.3, 0.9, t + 1.35, 0.85);
+  const tEnc = t + 1.9; corta(V.enc[0], V.enc[1], V.enc[2], tEnc, 0.8); const tArr = tEnc + V.enc[2] + 0.03; corta(V.arr[0], V.arr[1], V.arr[2], tArr, 0.9);
+  ralTipo = tipo; ralListo = tArr + 1.2; const lz = lazoRalenti(tipo);
+  if (lz) { ralSrc = AC.createBufferSource(); ralSrc.buffer = lz; ralSrc.loop = true; ralG = AC.createGain(); ralG.gain.value = 0; ralSrc.connect(ralG).connect(mezcla); ralSrc.start(ralListo - 0.2); }
+}
+let claxSrc = null, claxG = null;
+function claxonSuena(on) {
+  if (!AC || !SND.claxon) return;
+  if (on && !claxSrc) { claxSrc = AC.createBufferSource(); claxG = AC.createGain(); claxSrc.buffer = SND.claxon; claxSrc.loop = true; claxSrc.loopStart = Math.min(0.25, SND.claxon.duration * 0.2); claxSrc.loopEnd = Math.max(claxSrc.loopStart + 0.2, SND.claxon.duration - 0.25); claxG.gain.setValueAtTime(0, AC.currentTime); claxG.gain.linearRampToValueAtTime(0.5, AC.currentTime + 0.02); claxSrc.connect(claxG).connect(mezcla); claxSrc.start(); }
+  else if (!on && claxSrc) { const sr = claxSrc, g = claxG; claxSrc = null; g.gain.cancelScheduledValues(AC.currentTime); g.gain.setValueAtTime(g.gain.value, AC.currentTime); g.gain.linearRampToValueAtTime(0, AC.currentTime + 0.12); sr.stop(AC.currentTime + 0.15); }
 }
 let marchaAct = 0, rpmN = 0;
 function sonido(dt, thr) {
@@ -2286,10 +2625,12 @@ function sonido(dt, thr) {
   const t = AC.currentTime; lluviaG.gain.setTargetAtTime(W.lluvia * 0.05, t, 0.6);
   motor.frequency.setTargetAtTime(38 + rpmN * 120, t, 0.05);
   filtro.frequency.setTargetAtTime(260 + rpmN * 700 + (thr ? 250 : 0), t, 0.08);
-  motorG.gain.setTargetAtTime(arrancado && modo === "manejo" ? 0.07 + (thr ? 0.05 : 0) : 0, t, 0.1);
+  motorG.gain.setTargetAtTime(!ralSrc && arrancado && modo === "manejo" ? 0.07 + (thr ? 0.05 : 0) : 0, t, 0.1);   // la síntesis solo suena si aún no hay muestras
+  if (ralSrc) { const V = VEH_SND[ralTipo]; ralSrc.playbackRate.setTargetAtTime(V.tono * (0.72 + rpmN * 1.5), t, 0.08); ralG.gain.setTargetAtTime(modo === "manejo" && t > ralListo - 0.3 ? 0.3 + (thr ? 0.14 : 0) + rpmN * 0.2 : 0, t, 0.18); }
+  claxonSuena(!!claxon && modo === "manejo"); pasos(dt);
   const chirrido = clamp((Math.abs(S.vl) - 3) / 8, 0, 1) + (k("Space") && v > 6 ? 0.6 : 0);
   ruidoG.gain.setTargetAtTime(Math.min(chirrido, 1) * 0.12, t, 0.05);
-  bocinaG.gain.setTargetAtTime(claxon && modo === "manejo" ? 0.05 : 0, t, 0.02);
+  bocinaG.gain.setTargetAtTime(claxon && modo === "manejo" && !SND.claxon ? 0.05 : 0, t, 0.02);
   if (golpe > 1.5) { golpeG.gain.setValueAtTime(clamp(golpe / 20, 0.05, 0.5), t); golpeG.gain.setTargetAtTime(0, t + 0.02, 0.12); }
 }
 
@@ -2297,6 +2638,30 @@ function sonido(dt, thr) {
 const el = { kmh: $("kmh"), marcha: $("marcha"), rpm: $("rpm").firstElementChild, faros: $("iFaros"), freno: $("iFreno"), mano: $("iMano"), aviso: $("aviso"), hora: $("hora") };
 let avisoT = 0;
 function aviso(t) { el.aviso.textContent = t; el.aviso.classList.add("ver"); clearTimeout(avisoT); avisoT = setTimeout(() => el.aviso.classList.remove("ver"), 1800); }
+// Indicadores de vehículo: a pie, sobre cada vehículo conducible aparece una tarjeta (imagen + nombre) que entra en fundido de 5 m a 2,5 m. Se crean una vez (al verlos por primera vez) y se reutilizan.
+const IND_FICHA = { arena: ["Arena Pro", "./hud/arena.webp"], elite: ["JAC Elite", "./hud/elite.webp"], refine: ["JAC Refine", "./hud/refine.webp"], aventura: ["JAC Aventura", "./hud/aventura.webp"] }, IND = new Map(), pInd = new THREE.Vector3();
+const IND_LEJOS = 10, IND_CERCA = 7, IND_ALTO = 2.1, indReducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function indicador(clave, ficha, x, z, dt, activo) {
+  let e = IND.get(clave);
+  if (!e) { if (!activo) return; const d = document.createElement("div"); d.className = "hud ind"; d.setAttribute("aria-hidden", "true"); d.innerHTML = "<img alt=''><b></b><span class='tecla'><svg viewBox='0 0 28 28' width='22' height='22' aria-hidden='true'><rect x='1.5' y='1.5' width='25' height='22' rx='5' fill='#f2f4f8' stroke='#9aa3b2' stroke-width='1.5'/><rect x='3.5' y='3.5' width='21' height='16' rx='3.5' fill='#ffffff'/><path d='M10.5 7.5h7.2v2h-5v2.2h4.4v2h-4.4v2.3h5.1v2h-7.3z' fill='#12161d'/></svg>Entrar</span>"; document.body.appendChild(d); IND.set(clave, e = { d, im: d.firstChild, nom: d.children[1], tecla: d.lastChild, ficha: null, a: 0, vis: false, cerca: false }); }
+  if (e.ficha !== ficha) { e.ficha = ficha; if (ficha[1]) e.im.src = ficha[1]; else e.im.style.display = "none"; e.nom.textContent = ficha[0]; }
+  const dd = Math.hypot(P.x - x, P.z - z), t = clamp((IND_LEJOS - dd) / (IND_LEJOS - IND_CERCA), 0, 1), meta = activo ? t * t * (3 - 2 * t) : 0;   // smoothstep por distancia
+  e.a = Math.abs(meta - e.a) < 0.004 ? meta : lerp(e.a, meta, Math.min(1, 12 * dt));   // el fundido también suaviza subir/bajar del carro
+  const cerca = activo && dd < IND_LEJOS; if (cerca !== e.cerca) { e.cerca = cerca; e.tecla.classList.toggle("on", cerca); }   // botón «E Entrar» solo al alcance
+  let ver = false;
+  if (e.a > 0.004) {
+    pInd.set(x, suelo(x, z) + IND_ALTO, z).project(camera);   // punto sobre el techo, en pantalla
+    const px = (pInd.x + 1) / 2 * innerWidth, py = (1 - pInd.y) / 2 * innerHeight;
+    ver = pInd.z < 1 && px > -80 && px < innerWidth + 80 && py > -10 && py < innerHeight + 130;   // detrás de la cámara o fuera de pantalla (con margen del ancho/alto de la tarjeta): oculto
+    if (ver) { e.d.style.transform = `translate3d(${clamp(px, 82, innerWidth - 82).toFixed(1)}px,${(py + (indReducido ? 0 : (1 - e.a) * 8)).toFixed(1)}px,0) translate(-50%,calc(-100% - 7px))`; e.d.style.opacity = e.a.toFixed(3); }
+  }
+  if (ver !== e.vis) { e.vis = ver; e.d.style.visibility = ver ? "visible" : "hidden"; }
+}
+function indicadores(dt) {
+  const pie = modo === "pie"; camera.updateMatrixWorld();
+  indicador("propio", IND_FICHA[CARRO.actual] ?? IND_FICHA.arena, S.x, S.z, dt, pie);
+  for (const v of VEHICULOS) indicador(v, IND_FICHA[v.modelo === "vehiculo-elite" ? "elite" : v.modelo === "vehiculo-refine" ? "refine" : v.modelo === "vehiculo-aventura" ? "aventura" : "arena"], v.x, v.z, dt, pie && !v.tomado);
+}
 const mc = $("mapac"), mg = mc.getContext("2d");
 function minimapa() {
   const W = mc.width, z = 1.15;
@@ -2343,7 +2708,11 @@ let t0 = performance.now(), llantaSpin = 0;
 // ───────────────────────── PerformanceMonitor: tiempos de cuadro (percentiles), CPU por cuadro, draw calls, triángulos, memoria ─────────────────────────
 // JUEGO.perf() devuelve el resumen de los últimos 600 cuadros; F3 (o ?perf) muestra un panel; JUEGO.perfTex() estima la memoria de texturas (recorre la escena). No sustituye una medición en el equipo de destino.
 const PERF = { n: 600, ft: [], cpu: [], ultimo: 0 };
-const perfCuadro = (now, cpuMs) => { if (PERF.ultimo) { PERF.ft.push(now - PERF.ultimo); PERF.cpu.push(cpuMs); if (PERF.ft.length > PERF.n) { PERF.ft.shift(); PERF.cpu.shift(); } } PERF.ultimo = now; };
+PERF.tirones = [];   // JUEGO.tirones(): cuadros > 100 ms con su causa probable (shaders nuevos, texturas subidas a la GPU, niveles de edificio cargando)
+let perfPrev = { p: 0, t: 0, g: 0 };
+const perfCuadro = (now, cpuMs) => { if (PERF.ultimo) { const dt = now - PERF.ultimo; const i = renderer.info, p = i.programs?.length ?? 0, t = i.memory.textures, g = i.memory.geometries;
+    if (dt > 100 && PRE.mostrado) { const dp = p - perfPrev.p, dtex = t - perfPrev.t, dg = g - perfPrev.g, cargando = LODM.resumen().cargando; PERF.tirones.push({ t: Math.round(now), ms: Math.round(dt), cpu: Math.round(cpuMs), causa: dp > 0 ? "shaders nuevos (+" + dp + ")" : dtex > 0 ? "texturas nuevas en GPU (+" + dtex + ")" : dg > 0 || cargando ? "carga de edificios/geometrías" : cpuMs > dt * 0.6 ? "CPU del juego" : "GPU/otro (fuera del juego: otra app, navegador)", x: Math.round(S.x), z: Math.round(S.z) }); if (PERF.tirones.length > 60) PERF.tirones.shift(); }
+    perfPrev = { p, t, g }; PERF.ft.push(dt); PERF.cpu.push(cpuMs); if (PERF.ft.length > PERF.n) { PERF.ft.shift(); PERF.cpu.shift(); } } PERF.ultimo = now; };
 const pct = (a, q) => { if (!a.length) return 0; const o = a.slice().sort((x, y) => x - y); return o[Math.min(o.length - 1, Math.floor(q * o.length))]; };
 const perfResumen = () => { const ft = PERF.ft, avg = ft.length ? ft.reduce((x, y) => x + y, 0) / ft.length : 0, i = renderer.info, mem = performance.memory;
   return { cuadros: ft.length, fpsMedio: avg ? +(1000 / avg).toFixed(1) : 0, msP50: +pct(ft, 0.5).toFixed(1), msP95: +pct(ft, 0.95).toFixed(1), msP99: +pct(ft, 0.99).toFixed(1), msMax: +Math.max(0, ...ft).toFixed(1), tirones33: ft.filter((v) => v > 33.4).length, cpuMsMedio: +(PERF.cpu.reduce((x, y) => x + y, 0) / (PERF.cpu.length || 1)).toFixed(2), cpuMsP95: +pct(PERF.cpu, 0.95).toFixed(2),
@@ -2402,23 +2771,24 @@ function frame(now) {
   sonido(dt, thr);
 
   // día / noche
+  if (PRE.warm === undefined) { PRE.warm = 5; PRE.sv = [REL.hora, noche, luces]; } if (PRE.warm > 0) REL.hora = 22.5;   // pantalla de carga: unos cuadros de NOCHE ocultos compilan los shaders nocturnos (bloom, luces, ventanas) para que no haya tirones al anochecer
   REL.hora = (REL.hora + dt * VEL_TIEMPO[REL.vel] / 50) % 24; const rc = relojCalc(); nocheObj = rc.noche;   // el reloj avanza y fija la noche objetivo
   if (nocheObj > 0.7 && lucesAutoPrev <= 0.7) luces = true; else if (nocheObj < 0.3 && lucesAutoPrev >= 0.3) luces = false; lucesAutoPrev = nocheObj;   // luces del coche: se encienden al anochecer y se apagan al amanecer
-  noche += clamp(nocheObj - noche, -0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1), 0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1));
+  noche += clamp(nocheObj - noche, -0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1), 0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1)); if (PRE.warm > 0) noche = 1;
   if (now - horaHudT > 500) { horaHudT = now; el.hora.textContent = horaTxt() + (REL.vel === 0 ? " · pausa" : ""); }
   const cu = cielo.material.uniforms;
   cu.uT.value = now / 1000; grade.uniforms.uT.value = now / 1000; grade.uniforms.uNoche.value = noche; uWet.value = noche * 0.8;
   cu.top.value.lerpColors(cTopDia, cTopNoche, noche); cu.hor.value.lerpColors(cHorDia, cHorNoche, noche); cu.noche.value = noche;
   { const cr = rc.crep * (1 - W.lluvia * 0.6) * (1 - W.niebla * 0.4); cu.hor.value.lerp(cHorCrep, cr * 0.8); cu.top.value.lerp(cTopCrep, cr * 0.5); }   // atardecer / amanecer: horizonte anaranjado-rosa y cielo alto violeta (también tiñe la niebla)
   scene.fog.color.copy(cu.hor.value); scene.fog.near = lerp(70, 40, noche) * Math.min(1, DIST); scene.fog.far = lerp(560, 330, noche) * DIST;
-  hemi.intensity = lerp(0.9, 0.16, noche); sol.intensity = lerp(3, 0.45, noche); sol.color.lerpColors(cSolDia, cSolNoche, noche); if (rc.crep > 0.05) sol.color.lerp(cSolAlba, rc.crep * 0.55 * (1 - noche));
-  scene.environmentIntensity = lerp(0.7, 0.07, noche);
+  hemi.intensity = lerp(0.9, 0.32, noche); sol.intensity = lerp(3, 0.7, noche); sol.color.lerpColors(cSolDia, cSolNoche, noche); if (rc.crep > 0.05) sol.color.lerp(cSolAlba, rc.crep * 0.55 * (1 - noche));
+  scene.environmentIntensity = lerp(0.7, 0.14, noche);
   matFarola.emissiveIntensity = noche * 4; for (const m of matsFach) m.emissiveIntensity = noche * 1.0; matTienda.emissiveIntensity = noche * 1.1; matAnuncio.uniforms.uT.value = now / 1000; matAnuncio.uniforms.uNoche.value = noche;
-  for (const [m, base] of fxMats) if (m.userData.auto !== false) m.uniforms.uK.value = base * noche; matCharco.opacity = noche * 0.42;
+  for (const [m, base] of fxMats) if (m.userData.auto !== false) m.uniforms.uK.value = base * noche; matCharco.opacity = noche * 0.42; matCharcoBlanco.opacity = noche * 0.6;   // multiplicativo: x1,8 de noche bajo cada luminaria
   const hayNoche = noche > 0.01; for (const c of charcos) c.visible = hayNoche;     // los charcos de luz no se dibujan de día
   bloom.enabled = noche > 0.05;                  // de día casi no se ve y cuesta varios pases a pantalla completa
-  bloom.strength = lerp(0.2, 0.55, noche); bloom.threshold = lerp(3, 1.25, noche);   // de día no debe brillar el especular del sol
-  renderer.toneMappingExposure = lerp(1, 1.15, noche);
+  bloom.strength = lerp(0.2, 0.26, noche); bloom.threshold = lerp(3, 1.75, noche);   // bloom nocturno ~la mitad y umbral alto: solo brillan las luces fuertes, no los anuncios ni los blancos   // de día no debe brillar el especular del sol
+  renderer.toneMappingExposure = lerp(1, 1.12, noche);
   { const w = clamp((noche - 0.3) / 0.4, 0, 1), w2 = w * w * (3 - 2 * w); dirLuz.set(dirSun.x * (1 - w2) + dirMoon.x * w2, Math.max(0.14, dirSun.y * (1 - w2) + dirMoon.y * w2), dirSun.z * (1 - w2) + dirMoon.z * w2).normalize(); }   // la luz va del sol a la luna sin saltos
   const dirSol = dirLuz;
   cu.sunDir.value.copy(dirSun); cu.moonDir.value.copy(dirMoon); cu.uCrep.value = rc.crep * (1 - W.lluvia * 0.7) * (1 - W.niebla * 0.5);
@@ -2463,7 +2833,7 @@ function frame(now) {
   fxCoche.pilK = lerp(fxCoche.pilK, freno ? 1 : farosOn ? 0.3 : 0, Math.min(1, 20 * dt));
   haloPil.uniforms.uK.value = 4 * fxCoche.pilK * lerp(0.4, 1, noche); luzFreno.intensity = fxCoche.pilK * lerp(1.5, 9, noche) * (freno ? 1 : 0.4);
   tAsig -= dt; if (tAsig <= 0) { tAsig = 0.25; asignaFarolas(); }
-  for (const s of spotsF) { s.k = Math.min(1, s.k + 3 * dt); s.l.intensity = s.id < 0 ? 0 : 260 * noche * s.k; }
+  for (const s of spotsF) { s.k = Math.min(1, s.k + 3 * dt); s.l.intensity = s.id < 0 ? 0 : 260 * noche * s.k * (farolas[s.id]?.[8] ?? 1); }   // [8]: factor de intensidad por farola (postes LED 0,55)
   const pil = freno ? 2.4 : farosOn ? 0.8 : 0.0;                     // pilotos: los del propio modelo, sin luces añadidas
   for (const m of mats.piloto) m.emissiveIntensity = lerp(m.emissiveIntensity, pil, Math.min(1, 20 * dt));
   el.faros.classList.toggle("on", farosOn); el.freno.classList.toggle("on", freno); el.mano.classList.toggle("on", mano);
@@ -2475,6 +2845,7 @@ function frame(now) {
     if (modo === "pie" && P.v > 0.1) P.cy -= dy;  // caminando, la cámara se queda donde el jugador la dejó (el azimut efectivo no cambia)
   }
   const interior = !pie && camModo === 2, near = interior ? 0.04 : 0.5;
+  for (const X of [ELITE, REFINE, AVENTURA]) for (const v of X.vidrios) { const op = interior && X.model?.parent ? 0.3 : v.op; if (v.m.opacity !== op) v.m.opacity = op; }   // vidrios del Elite/Refine: casi transparentes desde dentro para ver hacia afuera
   if (camera.near !== near) camera.near = near;
   if (interior) {                                // ojos del conductor (socket del modelo), mirando al frente
     cPos.copy(OJOS); tilt.localToWorld(cPos);
@@ -2524,7 +2895,7 @@ function frame(now) {
   el.marcha.textContent = marchaAct < 0 ? "R" : marchaAct === 0 ? "N" : "D";
   el.rpm.style.width = rpmN * 100 + "%";
   { for (const g of luzPeaton.grupos) { g.me.emissiveIntensity = 0.15 + 3.5 * noche; g.mc.opacity = 0.9 * noche; } if (luzPeaton.rojo) { const ver = (performance.now() / 1000) % 12 < 6; luzPeaton.verde.emissiveIntensity = ver ? 2.6 : 0.08; luzPeaton.rojo.emissiveIntensity = ver ? 0.08 : 2.6; } }   // luces peatonales: se encienden de noche; el semáforo alterna verde/rojo cada 6 s
-  { const kn = 0.03 + 0.97 * noche; for (const mt of matsNocheEdificio) mt.emissiveIntensity = mt.userData.eBase * kn; LED.update(now, noche); }   // ventanas y logos de los edificios: se encienden de noche
+  { const kn = 0.03 + 0.97 * noche; for (const mt of matsNocheEdificio) mt.emissiveIntensity = mt.userData.eBase * kn; uNocheV.value = noche; for (const n of GIRA) n.rotation.y = now / 1000 * n.userData.vel; LED.update(now, noche); }   // ventanas y logos de los edificios: se encienden de noche
   if (lentesSem.size) {                          // semáforos: los de un grupo (`semaforos[]`, hasta 4) dan el paso de UNO en UNO (verde -> ámbar -> despeje en rojo); los sueltos hacen su ciclo propio
     const t = performance.now() / 1000, en = (id, V, A, D, i, n) => { const S = V + A + D, ph = ((t - i * S) % (n * S) + n * S) % (n * S); return ph < V ? "Green" : ph < V + A ? "Amber" : "Red"; }, asig = new Map();
     for (const g of MAPA.semaforos ?? []) { const ms = (g.miembros ?? []).slice(0, 4), V = g.verde ?? 9, A = g.ambar ?? 2, D = g.despeje ?? 1; ms.forEach((id, i) => asig.set(id, en(id, V, A, D, i, ms.length))); }
@@ -2532,14 +2903,16 @@ function frame(now) {
   }
   { const f = Math.floor(performance.now() / 500) & 1; lamparasValla[0].emissiveIntensity = f ? 6 : 0.2; lamparasValla[1].emissiveIntensity = f ? 0.2 : 6; }   // lámparas de las vallas: destello alterno
   lugarHud();
+  indicadores(dt);
   minimapa();
   if (!SINRENDER) composer.render();
   perfCuadro(now, performance.now() - c0); perfPanel(now);
-  if (!PRE.mostrado) { PRE.mostrado = true; requestAnimationFrame(() => { document.body.classList.remove("cargando"); $("carga").classList.add("fuera"); }); }   // la pantalla blanca solo se desvanece cuando YA se dibujó un cuadro real del juego (cámara y carro en su sitio); antes el canvas conservaba el último cuadro de la carga, con el carro y la cámara en el origen
+  if (PRE.warm > 0 && --PRE.warm === 0) { REL.hora = PRE.sv[0]; noche = PRE.sv[1]; luces = PRE.sv[2]; lucesAutoPrev = nocheObj = 0; }   // fin del calentamiento: vuelve a la hora y estado reales
+  if (!PRE.mostrado && PRE.warm === 0) { PRE.mostrado = true; requestAnimationFrame(() => { document.body.classList.remove("cargando"); $("carga").classList.add("fuera"); }); }   // la pantalla blanca solo se desvanece cuando YA se dibujó un cuadro real del juego (cámara y carro en su sitio); antes el canvas conservaba el último cuadro de la carga, con el carro y la cámara en el origen
 }
 // vista cenital para el editor de mapas: ?cenital=ALTO&cx=X&cz=Z -> cámara fija mirando hacia abajo (norte arriba), sin HUD
 { const q = new URLSearchParams(location.search), h = parseFloat(q.get("cenital")); if (h > 0) { const cx = parseFloat(q.get("cx")) || 0, cz = parseFloat(q.get("cz")) || 0; const tx = q.has("tx") ? parseFloat(q.get("tx")) : cx, ty = parseFloat(q.get("ty")) || 0, tz = q.has("tz") ? parseFloat(q.get("tz")) : cz; window.DBGCAM = { p: [cx, h, cz + (q.has("tx") ? 0 : 1)], t: [tx, ty, tz] }; document.querySelectorAll(".hud").forEach((e) => (e.style.display = "none")); } }
-window.JUEGO = { REL, relojCalc, dirSun, dirMoon, horaTxt, perf: perfResumen, perfTex, LODM, LED, aplicaCalidad, CAL, CALLES, RELIEVE, alturaTerreno, suelo, spL, spP, spA, spS, spray, W, setClima, pozos, BACHES, huellas, arbolesPos, XR, ZR, S, P, pj, ent, acts, get modo() { return modo; }, get mixer() { return mixer; }, get puerta() { return puerta; }, get cabeza() { return cabeza; }, accion, ruedas, camera, car, THREE, orb, composer, bloom, scene, renderer, tilt, teselas, gtao, setNoche: (v) => { noche = nocheObj = v; luces = true; },   // para depurar desde la consola
+window.JUEGO = { ANUN_IMG, camera, sim: (dt) => personaje(dt), setPausa: (v) => { pausa = v; }, LOCO, audio: () => ({ snd: Object.keys(SND), caminar: PASOS.caminar.length, correr: PASOS.correr.length, estado: AC && AC.state, lazos: Object.keys(LAZO), ralSrc: !!ralSrc }), secuencia: secuenciaArranque, paso: pasoSuena, tirones: () => PERF.tirones, scene, renderer, CARRO, VEHICULOS, abordar, REL, relojCalc, dirSun, dirMoon, horaTxt, perf: perfResumen, perfTex, LODM, LED, aplicaCalidad, CAL, CALLES, RELIEVE, alturaTerreno, suelo, spL, spP, spA, spS, spray, W, setClima, pozos, BACHES, huellas, arbolesPos, XR, ZR, S, P, pj, ent, acts, get camModo() { return camModo; }, set camModo(v) { camModo = v; }, OJOS, volante, ELITE, REFINE, AVENTURA, get modo() { return modo; }, get mixer() { return mixer; }, get puerta() { return puerta; }, get cabeza() { return cabeza; }, accion, ruedas, camera, car, THREE, orb, composer, bloom, scene, renderer, tilt, teselas, gtao, setNoche: (v) => { noche = nocheObj = v; luces = true; },   // para depurar desde la consola
   stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs.length }) };
 requestAnimationFrame(frame);
 </script>
