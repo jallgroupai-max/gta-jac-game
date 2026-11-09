@@ -2717,10 +2717,10 @@ function secuenciaArranque(tipo) {   // al ponerse al volante: aviso del cintur�
   const tEnc = t + 1.9; corta(V.enc[0], V.enc[1], V.enc[2], tEnc, 0.8); const tArr = tEnc + V.enc[2] + 0.03; corta(V.arr[0], V.arr[1], V.arr[2], tArr, 0.9);
   ralTipo = tipo; ralListo = tArr + 1.2; const lz = lazoRalenti(tipo);
   arranqueHasta = SND[V.enc[0]] && SND[V.arr[0]] ? performance.now() + (tArr + V.arr[2] - AC.currentTime) * 1000 : 0; if (arranqueHasta) aviso("Encendiendo el motor…");   // sin audio no hay espera
-  if (lz) {   // motor deportivo: capa grave saturada (rugido) + capa aguda que sube con las revoluciones y el acelerador (grito del motor)
+  if (false && lz) {   // sin sonido de motor en marcha (solo encendido y arranque): lazos de ralentí y revoluciones desactivados. Antes: motor deportivo: capa grave saturada (rugido) + capa aguda que sube con las revoluciones y el acelerador (grito del motor)
     ralSrc = AC.createBufferSource(); ralSrc.buffer = lz; ralSrc.loop = true; ralG = AC.createGain(); ralG.gain.value = 0;
     const sat = AC.createWaveShaper(); sat.curve = curvaDist(3.2); sat.oversample = "2x"; const lp = AC.createBiquadFilter(); lp.type = "lowshelf"; lp.frequency.value = 160; lp.gain.value = 9;
-    ralSrc.connect(sat); sat.connect(lp); lp.connect(ralG).connect(mezcla); ralSrc.start(ralListo - 0.2);
+    ralSrc.connect(lp); lp.connect(ralG).connect(mezcla);   // sin saturación (rugido) ralSrc.start(ralListo - 0.2);
     const lr = lazoRalenti(tipo, "rev") ?? lz; ralSrc2 = AC.createBufferSource(); ralSrc2.buffer = lr; ralSrc2.loop = true; ralG2 = AC.createGain(); ralG2.gain.value = 0; const hp = AC.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 160; ralSrc2.connect(hp).connect(ralG2).connect(mezcla); ralSrc2.start(ralListo - 0.2);
   }
 }
@@ -2741,13 +2741,13 @@ function sonido(dt, thr) {
   const t = AC.currentTime; lluviaG.gain.setTargetAtTime(W.lluvia * 0.05, t, 0.6);
   motor.frequency.setTargetAtTime(38 + rpmN * 120, t, 0.05);
   filtro.frequency.setTargetAtTime(260 + rpmN * 700 + (thr ? 250 : 0), t, 0.08);
-  motorG.gain.setTargetAtTime(!ralSrc && arrancado && modo === "manejo" ? 0.07 + (thr ? 0.05 : 0) : 0, t, 0.1);   // la síntesis solo suena si aún no hay muestras
+  motorG.gain.setTargetAtTime(0, t, 0.1);   // sin motor sintetizado: el único sonido del motor es el de encendido y arranque   // la síntesis solo suena si aún no hay muestras
   if (ralSrc) {   // sonido deportivo: más agudo y con más rango, corte de combustible en cada cambio, ráfaga al pisar el acelerador y capa aguda con la carga
     const V = VEH_SND[ralTipo], conduce = modo === "manejo" && t > ralListo - 0.3; if (marchaAct !== marchaPrev) { if (marchaAct > marchaPrev && marchaPrev > 0) cortaT = t + 0.1; marchaPrev = marchaAct; }
     const corte = t < cortaT ? 0.3 : 1, sm = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); }, carga = thr ? 1 : 0.35;
     const baja = V.tono * (0.55 + rpmN * 1.25 + (thr && Math.abs(S.vf) < 3 ? 0.2 : 0)), alta = V.tono * (0.8 + rpmN * 0.9 + (thr && Math.abs(S.vf) < 3 ? 0.15 : 0));   // capa grave: muy profunda en ralentí; capa aguda: motor a altas revoluciones
     ralSrc.playbackRate.setTargetAtTime(baja, t, 0.05); ralG.gain.setTargetAtTime(conduce ? (0.5 + (thr ? 0.25 : 0)) * (1 - 0.55 * sm(0.3, 0.85, rpmN)) * corte : 0, t, corte < 1 ? 0.01 : 0.1);
-    ralSrc2.playbackRate.setTargetAtTime(alta, t, 0.05); ralG2.gain.setTargetAtTime(conduce ? (0.12 + 0.7 * sm(0.2, 0.8, rpmN)) * carga * corte : 0, t, corte < 1 ? 0.01 : 0.09);
+    ralSrc2.playbackRate.setTargetAtTime(alta, t, 0.05); ralG2.gain.setTargetAtTime(0, t, 0.05);   // capa de altas revoluciones (rugido al acelerar) retirada
   }
   claxonSuena(!!claxon && modo === "manejo"); pasos(dt);
   const chirrido = clamp((Math.abs(S.vl) - 3) / 8, 0, 1) + (k("Space") && v > 6 ? 0.6 : 0);
