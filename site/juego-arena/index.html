@@ -15,8 +15,16 @@
 
   #carga { position: fixed; inset: 0; z-index: 20; display: grid; place-content: center; justify-items: center; gap: 14px; background: #f2f2f0; color: #121315; transition: opacity 1.1s ease; }
   #carga.fuera { opacity: 0; pointer-events: none; }
+  #carga #entrar { display: none; margin-top: 6px; padding: 14px 36px; border: 1px solid #121315; background: transparent; color: #121315; letter-spacing: .35em; padding-left: calc(36px + .35em); font: inherit; font-size: 12px; cursor: pointer; animation: latido 1.9s ease-in-out infinite; }
+  #carga #entrar:hover { background: #121315; color: #f2f2f0; animation: none; }
+  #carga.lista { cursor: pointer; } #carga.lista #entrar { display: block; } #carga.lista #barra, #carga.lista #pct { display: none; }
+    #carga #tip { max-width: min(520px, 86vw); margin-top: 22px; text-align: center; letter-spacing: .06em; font-size: 13px; line-height: 1.55; color: #3b3e43; min-height: 3.2em; transition: opacity .5s ease; }
+  #carga #tip b { font-weight: 600; letter-spacing: .14em; font-size: 10px; display: block; color: #9a9da2; margin-bottom: 4px; }
+  #carga #tip.off { opacity: 0; }
+  @keyframes latido { 50% { opacity: .4; } }
   body.cargando { background: #f2f2f0; }
   body.cargando canvas#c, body.cargando .hud, body.cargando #btnF { visibility: hidden; }   /* mientras carga solo se ve la pantalla blanca: nada del juego asoma por debajo */
+  body.cine .hud, body.cine .ind, body.cine #btnF { visibility: hidden !important; }   /* toma inicial: sin HUD (minimapa, velocidad, hora, indicación de teclas...) hasta que termina */
   #carga h1 { margin: 0; font-weight: 300; font-stretch: 125%; letter-spacing: .5em; font-size: 44px; padding-left: .5em; }
   #carga p { margin: 0; letter-spacing: .3em; font-size: 12px; color: #7a7d82; }
   #barra { width: 200px; height: 2px; background: rgba(18,19,21,.12); }
@@ -44,6 +52,14 @@
   #hora { left: 24px; top: 100px; padding: 5px 14px; border-radius: 18px; background: rgba(10,12,16,.5); backdrop-filter: blur(8px); font-size: 12px; letter-spacing: .12em; }
   #aviso { left: 50%; top: 22px; transform: translateX(-50%); padding: 8px 18px; border-radius: 20px; background: rgba(10,12,16,.6); backdrop-filter: blur(8px); font-size: 13px; letter-spacing: .08em; opacity: 0; transition: opacity .3s; }
   #aviso.ver { opacity: 1; }
+  /* indicación inicial de movimiento: se va con el primer paso (quitaAyuda) */
+  #ayuda { left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 22px 32px; border-radius: 26px; background: rgba(10,12,16,.62); backdrop-filter: blur(8px); font-size: 20px; font-weight: 600; letter-spacing: .08em; transition: opacity .6s; }
+  #ayuda.fuera { opacity: 0; }
+  #ayuda .teclas { display: grid; grid-template-columns: repeat(3, 46px); gap: 6px; }
+  #ayuda kbd { display: grid; place-items: center; height: 44px; border-radius: 10px; background: rgba(255,255,255,.16); box-shadow: inset 0 -3px 0 rgba(0,0,0,.35); font: 700 19px var(--font); }
+  #ayuda .teclas kbd:nth-child(1) { grid-area: 1 / 2; } #ayuda .teclas kbd:nth-child(2) { grid-area: 1 / 1; }   /* W en el centro, A a su izquierda (misma altura) */
+  #ayuda .teclas kbd:nth-child(3) { grid-area: 2 / 2; } #ayuda .teclas kbd:nth-child(4) { grid-area: 1 / 3; }   /* S debajo de la W, D a su derecha */
+  @media (max-width: 800px) { #ayuda { gap: 14px; padding: 14px 18px; font-size: 15px; } #ayuda .teclas { grid-template-columns: repeat(3, 34px); gap: 4px; } #ayuda kbd { height: 32px; font-size: 15px; } }
   .ind { left: 0; top: 0; z-index: 9; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 14px 9px; border-radius: 16px; background: rgba(10,12,16,.62); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; will-change: transform, opacity; }
   .ind::after { content: ""; position: absolute; left: 50%; top: 100%; width: 16px; height: 7px; margin-left: -8px; background: rgba(10,12,16,.62); clip-path: polygon(0 0, 100% 0, 50% 100%); }
   .ind img { width: 118px; height: auto; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,.45)); }
@@ -70,10 +86,10 @@
   "three/addons/": "../juego/vendor/jsm/",
   "../juego/vendor/jsm/math/SimplexNoise.js": "data:text/javascript,export class SimplexNoise{noise(x,y){const s=Math.sin(x*12.9898+y*78.233)*43758.5453;return (s-Math.floor(s))*2-1}}" } }</script>
 <!-- GTAOPass importa SimplexNoise.js, que no está en el vendor compartido: se sustituye por ruido blanco determinista (solo siembra la textura de giro del denoise) --></head>
-<body class="cargando">
+<body class="cargando cine">
 <canvas id="c"></canvas>
 
-<div id="carga"><h1>JAC</h1><p>ARENA PRO · BARQUISIMETO</p><div id="barra"><i></i></div><p id="pct">0 %</p></div>
+<div id="carga"><h1>JAC</h1><p>BARQUISIMETO</p><div id="barra"><i></i></div><p id="pct">0 %</p><button id="entrar" type="button">CLICK PARA ENTRAR</button><p id="tip"></p></div>
 
 <div class="hud" id="mapa"><canvas id="mapac" width="400" height="400"></canvas></div>
 <div class="hud" id="vel">
@@ -93,6 +109,7 @@
 <div class="hud" id="clima"></div>
 <div class="hud" id="hora"></div>
 <div class="hud" id="aviso"></div>
+<div class="hud" id="ayuda"><span class="teclas"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>para moverte</span></div>
 
 <script type="module">
 import * as THREE from "three";
@@ -134,6 +151,9 @@ const uWet = { value: 0 };                       // asfalto mojado (de noche): s
 // Cada tarea tiene un peso (MB aproximados) y un avance 0..1; el % mostrado es la suma ponderada y nunca retrocede. El juego solo se muestra cuando todo está leído, subido a la GPU y compilado.
 const SINRENDER = new URLSearchParams(location.search).has("sinrender");   // solo para pruebas automáticas sin GPU: no dibuja, pero la lógica de carga corre igual
 const PRE = { t: {}, max: 0, edifOk: false, cuadros: 0, ini: performance.now() };
+// Toma cinematográfica inicial (cineCamara / saltaCine, más abajo): arranca en los logos JAC y bel de la torre (edificio e1), se aleja despacio TA s y vuelve a Aquiles en TB s. ?sincine y ?cenital (editor) la desactivan.
+const CINE = { activa: !/[?&](cenital|sincine)\b/.test(location.search), t0: 0, fin: 0, TA: 7, TB: 1.9, id: "e1", caja: null, fo: { x: 0, z: 0, hd: 0 } };
+if (!CINE.activa) document.body.classList.remove("cine");
 const preTarea = (n, peso) => { PRE.t[n] = { peso, av: 0 }; };
 const preAv = (n, v) => { const t = PRE.t[n]; if (t && v > t.av) t.av = Math.min(1, v); };
 const preActualiza = () => { let a = 0, b = 0; for (const k in PRE.t) { a += PRE.t[k].peso * PRE.t[k].av; b += PRE.t[k].peso; } PRE.max = Math.max(PRE.max, b ? a / b : 0); const pc = Math.min(99, Math.floor(PRE.max * 100)); $("barra").firstElementChild.style.width = pc + "%"; $("pct").textContent = pc + " %"; };
@@ -499,7 +519,7 @@ const BARRERAS = (MAPA.barreras ?? []).map((b) => { const l = Math.hypot(b.dx, b
 const SPAWN_MAPA = MAPA.spawn ?? { x: 0, z: 0, hd: 0 };
 
 // texturas PBR de Poly Haven (CC0): color sRGB + normal OpenGL + rugosidad (o ARM), repetidas por coordenadas de mundo
-preTarea("texturas", 12); const mgrTex = new THREE.LoadingManager(); mgrTex.onProgress = (u, l, t) => preAv("texturas", t ? l / t * 0.98 : 0); mgrTex.onLoad = () => preAv("texturas", 1);
+preTarea("mundo", 22); preTarea("texturas", 12); const mgrTex = new THREE.LoadingManager(); mgrTex.onProgress = (u, l, t) => preAv("texturas", t ? l / t * 0.98 : 0); mgrTex.onLoad = () => preAv("texturas", 1);
 const tl = new THREE.TextureLoader(mgrTex), ANISO_MAT = Math.min(ANISO, HD ? 16 : 8), HD_PH = new Set(["asphalt_pit_lane", "grass_ground", "dirt_floor"]);   // texturas Poly Haven con versión 2K
 // Texturas sueltas en KTX2 (Basis): quedan comprimidas en la GPU (~4-8x menos memoria). El .ktx2 está junto al .jpg (volteado en vertical, como flipY del jpg); el objeto se crea vacío y se rellena al llegar, así los materiales no cambian.
 const kt2 = kt;   // un único KTX2Loader (varios generan avisos de rendimiento); la carga de texturas sueltas se cuenta aparte con mgrTex (itemStart/itemEnd)
@@ -1457,10 +1477,12 @@ const LODM = (() => {
         if (!e.texs.length) e.gpu = true;                                   // texturas ya en la GPU: el nivel se puede mostrar (los shaders iguales se reutilizan)
         if (performance.now() - t0 >= ms) break; }
     },
-    update(x, z, now, vel) {
+    update(x, z, now, vel, foco) {   // foco {x, z, id}: ese edificio se pide también al nivel que le tocaría desde (x, z) del foco (la toma inicial mira la torre desde el principio)
       if (now - ultimo < 200) return; ultimo = now;
       for (const b of lista) {
-        const [L, dd] = nivelObjetivo(b, x, z, vel), n = b.niveles; b.obj = L;
+        let [L, dd] = nivelObjetivo(b, x, z, vel); const n = b.niveles;
+        if (foco && b.id === foco.id) { const [L2, d2] = nivelObjetivo(b, foco.x, foco.z, 0); if (L2 < L) { L = L2; dd = d2; } }
+        b.obj = L;
         const ent = n.map((nv, i) => (i === L || b.clones[i] ? pedir(nv.archivo, i, dd, b.ajuste) : null));   // el objetivo se pide (si no está) y los ya presentes se mantienen vivos
         let mostrar = -1, mejor = 1e9; for (let i = 0; i < n.length; i++) if (ent[i] && ent[i].scene && ent[i].gpu) { const sc = Math.abs(i - L) + (i < L ? 0.1 : 0); if (sc < mejor) { mejor = sc; mostrar = i; } }   // el listo (en GPU) más cercano al objetivo (a igualdad, el más ligero)
         if (mostrar >= 0 && !b.clones[mostrar]) { b.clones[mostrar] = b.grupos.map((g) => { const k = ent[mostrar].scene.clone(true); b.prep(k, mostrar); g.add(k); return k; }); ent[mostrar].users.add(b.id); }
@@ -1469,6 +1491,7 @@ const LODM = (() => {
       }
       for (const e of cache.values()) if (e.scene && e.users.size === 0 && now - e.last > 20000 && !e.cargando && e.gpu) { liberar(e.scene); e.scene = null; e.gpu = false; }   // sin ningún edificio que lo use: se libera de la GPU/RAM
     },
+    todosArchivos() { return [...new Set(lista.flatMap((b) => b.niveles.map((nv) => nv.archivo)))].filter((f) => !cache.get(f)?.scene); },
     resumen() { return { edificios: lista.map((b) => ({ id: b.id, nivel: b.vis, objetivo: b.obj })), archivos: [...cache.values()].filter((e) => e.scene).map((e) => e.f), cargando: [...cache.values()].filter((e) => e.cargando).length }; },
   };
   return api;
@@ -2124,6 +2147,8 @@ const CIRCULOS = [-1.35, 0, 1.35], RADIO = 1.05;
 
 addEventListener("keydown", (e) => {
   if (e.repeat) { if (["Space", "ArrowUp", "ArrowDown"].includes(e.code)) e.preventDefault(); return; }
+  if (!PRE.click) { if (e.code === "Enter") entrarJuego(); return; }   // antes del click no se juega
+  if (CINE.activa) { if (!e.ctrlKey && !e.metaKey && !e.altKey && !/^F\d+$|^(Shift|Control|Alt|Meta)/.test(e.code)) { e.cineSalto = true; audioInit(); if (CINE.t0 && performance.now() - CINE.t0 > 500) saltaCine(); } return; }   // durante la toma ninguna tecla mueve a Aquiles: cualquiera (salvo modificadores y F1-F12) salta al final
   keys.add(e.code); audioInit();
   if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
   if (e.code === "KeyL") { luces = !luces; aviso(luces ? "Luces encendidas" : "Luces apagadas"); }
@@ -2141,6 +2166,7 @@ canvas.style.cursor = "grab";
 // Sin captura (táctil, o tras Esc) sigue funcionando arrastrando con el botón pulsado.
 const bloqueado = () => document.pointerLockElement === canvas;
 canvas.addEventListener("pointerdown", (e) => {
+  if (CINE.activa) { audioInit(); if (CINE.t0 && performance.now() - CINE.t0 > 500) saltaCine(); return; }   // clic o toque durante la toma: salta al final (sin pointer lock; el siguiente clic ya lo pide)
   orb.arrastra = true; orb.t = performance.now(); audioInit();
   if (!touch && !bloqueado()) canvas.requestPointerLock?.()?.catch?.(() => {});     // si el navegador lo rechaza queda el arrastre normal
   else canvas.setPointerCapture(e.pointerId);
@@ -2160,7 +2186,8 @@ if (touch) {
   const mapT = (e) => { keys.delete("KeyA"); keys.delete("KeyD"); keys.delete("KeyW"); keys.delete("KeyS");
     for (const t of e.touches) { const x = t.clientX / innerWidth, y = t.clientY / innerHeight;
       if (x < 0.33) keys.add("KeyA"); else if (x > 0.67) keys.add("KeyD"); else keys.add(y < 0.6 ? "KeyW" : "KeyS"); } };
-  addEventListener("touchstart", (e) => { audioInit(); mapT(e); }); addEventListener("touchmove", mapT); addEventListener("touchend", mapT);
+  const libre = () => !CINE.activa && performance.now() - CINE.fin > 400;   // durante la toma (y justo al saltarla con un toque) los toques no mueven a Aquiles
+  addEventListener("touchstart", (e) => { audioInit(); if (libre()) mapT(e); }); addEventListener("touchmove", (e) => { if (libre()) mapT(e); }); addEventListener("touchend", mapT);
 }
 
 function paso(dt) {
@@ -2236,8 +2263,84 @@ const ent = { fase: 0, t: 0, dur: 0, x0: 0, z0: 0, y0: 0, dy: 0 };
 let fo = S;                                     // foco (S o P) para sombra, minimapa y calle
 const cPos = new THREE.Vector3(), cTgt = new THREE.Vector3(), bPos = new THREE.Vector3(), bTgt = new THREE.Vector3(), ultPos = new THREE.Vector3(), ultTgt = new THREE.Vector3();
 let camMezcla = 0, camManeja = false;
+// ───────────────────────── Toma cinematográfica inicial ─────────────────────────
+// La cámara normal de juego se calcula como siempre; cineCamara la sustituye durante la toma y termina EXACTAMENTE en ella (Hermite con velocidad final 0 hacia la cámara real de cada cuadro), así que no hay salto.
+// Fase A (TA s): sale de 3,5 m bajo los logos y retrocede en línea recta hacia Aquiles, lenta (arranca de velocidad 0). Fase B (TB s): vuelo rápido hasta la cámara de Aquiles; la mirada pasa de los logos a Aquiles.
+const _cc = new THREE.Vector3(), _cn = new THREE.Vector3(), _c0 = new THREE.Vector3(), _c1 = new THREE.Vector3(), _cv = new THREE.Vector3(), _cf = new THREE.Vector3(), _c0v = new THREE.Vector3();
+const hermite = (o, a, va, b, vb, T, s) => { const s2 = s * s, s3 = s2 * s; return o.copy(a).multiplyScalar(2 * s3 - 3 * s2 + 1).addScaledVector(va, (s3 - 2 * s2 + s) * T).addScaledVector(b, 3 * s2 - 2 * s3).addScaledVector(vb, (s3 - s2) * T); };
+function cineCaja() {   // caja de mundo de los logos JAC y bel de la torre (mallas MAT_Logo_*); si no están, la parte alta de la caja del edificio. Solo se fija cuando la torre se muestra en su nivel más alto
+  if (CINE.caja) return CINE.caja;
+  const b = LODM.lista.find((q) => q.id === CINE.id), cl = b?.clones[b.vis]?.[0]; if (!cl || b.vis !== 0) return null;
+  cl.updateMatrixWorld(true); const lg = new THREE.Box3(), t = new THREE.Box3();
+  cl.traverse((o) => { if (o.isMesh && [].concat(o.material).some((m) => /^MAT_Logo_(bel|JAC)/.test(m.name))) lg.union(t.setFromObject(o)); });
+  if (lg.isEmpty()) { t.setFromObject(cl); lg.set(_cc.set(t.min.x, t.max.y - 8, t.min.z), t.max); }
+  return (CINE.caja = lg);
+}
+const cineFoco = () => { const b = CINE.activa && LODM.lista.find((q) => q.id === CINE.id); return b ? { x: b.cx, z: b.cz, id: b.id } : null; };
+function cineLista() {   // la pantalla de carga espera a que la torre esté en su nivel alto (y sus logos localizados); sin torre, no hay toma
+  if (!CINE.activa) return true;
+  const b = LODM.lista.find((q) => q.id === CINE.id); if (!b) { CINE.activa = false; document.body.classList.remove("cine"); return true; }
+  return !!cineCaja() || !!LODM.cache.get(b.niveles[0].archivo)?.fallo;
+}
+function finCine() { if (!CINE.activa) return; CINE.activa = false; CINE.fin = performance.now(); document.body.classList.remove("cine"); keys.clear(); aviso("WASD correr · E subir al carro"); }
+function saltaCine() { if (!CINE.activa) return; bPos.copy(ultPos); bTgt.copy(ultTgt); camMezcla = 1; finCine(); }   // al saltarla, la cámara viaja suave (0,9 s) desde donde estaba hasta la de Aquiles
+function cineCamara(pos, tgt) {   // pos/tgt traen la cámara normal de juego (el final de la toma) y se sustituyen por la de la toma
+  const lg = cineCaja(); if (!lg) return;
+  const TA = CINE.TA, TB = CINE.TB, T = TA + TB, t = CINE.t0 ? (performance.now() - CINE.t0) / 1000 : 0;
+  if (t >= T) { finCine(); return; }
+  lg.getCenter(_cc); const ancho = Math.max(lg.max.x - lg.min.x, lg.max.z - lg.min.z, 12), fov0 = 50;
+  _cn.set(P.x - _cc.x, 0, P.z - _cc.z).normalize();                                   // los logos miran hacia donde está Aquiles
+  const d0 = clamp(ancho * 1.3 / 2 / (Math.tan(fov0 * Math.PI / 360) * camera.aspect), 18, 70);   // distancia a la que caben los dos logos con margen, según la proporción de la ventana
+  _c0.copy(_cc).addScaledVector(_cn, d0); _c0.y = _cc.y - 3.5;                          // encuadre inicial
+  _c1.copy(_cc).addScaledVector(_cn, d0 + 40); _c1.y = _cc.y - 12;                      // fin de la fase lenta
+  _cv.copy(_c1).sub(_c0).multiplyScalar(1 / TA); _cf.copy(pos);                         // _cv: velocidad con que entra el vuelo rápido (la de la fase lenta: sin tirón)
+  if (t < TA) hermite(pos, _c0, _c0v.set(0, 0, 0), _c1, _cv, TA, t / TA); else hermite(pos, _c1, _cv, _cf, _c0v.set(0, 0, 0), TB, (t - TA) / TB);
+  const k = clamp((t - (TA - 0.5)) / (T - (TA - 0.5)), 0, 1); tgt.lerpVectors(_cc, tgt, k * k * (3 - 2 * k));   // mira los logos y gira hacia Aquiles en el último tramo
+  const f = t / T; camera.fov = lerp(fov0, camera.fov, f * f * (3 - 2 * f));
+}
+// Cajas orientadas de los vehículos (el conducible y los del mapa): [cx, cz, rumbo, medio ancho, medio largo, alto]. La cámara se acerca al objetivo hasta quedar fuera de todas.
+const CAJA_VEH = { arena: [0.98, 2.25, 1.75], elite: [1.05, 2.5, 1.55], refine: [1.1, 2.7, 1.9], aventura: [1.1, 2.6, 2.0] }, _cajas = [];
+const dentroVeh = (p, c, m) => { const cs = Math.cos(c[2]), sn = Math.sin(c[2]), ax = p.x - c[0], az = p.z - c[1], lx = ax * cs - az * sn, lz = ax * sn + az * cs; return Math.abs(lx) < c[3] + m && Math.abs(lz) < c[4] + m && p.y < c[6] + c[5] + m && p.y > c[6] - 0.2; };
+function camFueraDeVehiculos(cp, tg) {
+  _cajas.length = 0; const d = CAJA_VEH[CARRO.actual] ?? CAJA_VEH.arena; _cajas.push([S.x, S.z, S.hd, d[0], d[1], d[2], S.y]);
+  for (const v of VEHICULOS) { if (v.tomado) continue; const q = CAJA_VEH[v.modelo === "vehiculo-elite" ? "elite" : v.modelo === "vehiculo-refine" ? "refine" : v.modelo === "vehiculo-aventura" ? "aventura" : "arena"]; _cajas.push([v.x, v.z, v.hd, q[0], q[1], q[2], suelo(v.x, v.z)]); }
+  const M = 0.45; let dentro = false; for (const c of _cajas) if (dentroVeh(cp, c, M)) { dentro = true; break; }
+  if (!dentro) return;
+  const f = cp.clone().sub(tg); for (let i = 15; i >= 1; i--) { const t = i / 16; _lv.copy(tg).addScaledVector(f, t); let ok = true; for (const c of _cajas) if (dentroVeh(_lv, c, M)) { ok = false; break; } if (ok) { cp.copy(_lv); return; } }
+  for (const c of _cajas) if (dentroVeh(cp, c, M)) {   // el objetivo está dentro de la caja (p. ej. el conductor): se saca la cámara por la cara más cercana
+    const cs = Math.cos(c[2]), sn = Math.sin(c[2]), ax = cp.x - c[0], az = cp.z - c[1]; let lx = ax * cs - az * sn, lz = ax * sn + az * cs; const ex = c[3] + M - Math.abs(lx), ez = c[4] + M - Math.abs(lz);
+    if (ex < ez) lx = Math.sign(lx || 1) * (c[3] + M); else lz = Math.sign(lz || 1) * (c[4] + M); cp.x = c[0] + lx * cs + lz * sn; cp.z = c[1] - lx * sn + lz * cs; }
+}
 
-function listo() { if (--pend) return; arrancado = true; aviso("WASD correr · E subir al carro"); }   // el juego queda visible debajo y la pantalla blanca se desvanece (fade) encima
+const entrarJuego = () => { if (!arrancado || PRE.click) return; PRE.click = true; audioInit(); $("carga").classList.remove("lista"); aviso("WASD correr · E subir al carro"); };   // el click también habilita el audio
+$("carga").addEventListener("click", entrarJuego);
+const TIPS = [
+  "Acércate a cualquier vehículo y pulsa E para subir. Hay varios modelos repartidos por la ciudad.",
+  "Mueve el mouse para girar la cámara alrededor de tu personaje; Aquiles siempre corre.",
+  "Al subir a un auto espera a que termine el encendido del motor: cada modelo suena distinto al arrancar.",
+  "Pulsa L para encender o apagar los faros y mantén H para el claxon.",
+  "Con C cambias la cámara del vehículo: trasera, alta e interior.",
+  "El Espacio es el freno de mano: úsalo en las curvas para derrapar.",
+  "Pulsa N para saltar entre el día y la noche: de noche se encienden los postes, las pantallas LED y las ventanas.",
+  "Pulsa K para cambiar el clima: sol, lluvia o neblina.",
+  "Si cambias de vehículo, el anterior vuelve a su sitio de origen.",
+  "Pulsa R para volver al punto de salida.",
+  "Esc abre la pausa: allí cambias la hora, la velocidad del tiempo y la calidad gráfica.",
+  "Mira los anuncios de las pantallas LED de los edificios: cambian solos con un deslizamiento.",
+];
+let tipI = Math.floor(Math.random() * TIPS.length), tipT = 0;
+function tipsCarga(now) {   // un consejo nuevo cada 6 s con fundido
+  const el = $("tip"); if (!el) return; if (!el.textContent) { el.innerHTML = "<b>CONSEJO</b>" + TIPS[tipI]; tipT = now; return; }
+  if (now - tipT > 6000) { tipT = now; el.classList.add("off"); setTimeout(() => { tipI = (tipI + 1) % TIPS.length; el.innerHTML = "<b>CONSEJO</b>" + TIPS[tipI]; el.classList.remove("off"); }, 500); }
+}
+const MUNDO = { v: 0, vT: 3, p: 0, pT: 0, listo: false, ang: 0, ult: 0 };
+async function iniciaMundo() {   // dentro de la pantalla de carga: vehículos que faltan y archivos de todos los niveles de los edificios (la cámara, mientras, da una vuelta de 360 grados al personaje y va cargando los modelos cercanos)
+  const arch = LODM.todosArchivos(); MUNDO.pT = arch.length;
+  for (const f of [cargaElite, cargaRefine, cargaAventura]) { try { await f(); } catch (e) { console.warn("carga del mundo", e); } MUNDO.v++; }
+  const cola = arch.slice(), obrero = async () => { while (cola.length) { const f = cola.shift(); try { await (await fetch("./modelos/" + f)).arrayBuffer(); } catch (e) { /* sigue con el resto */ } MUNDO.p++; } };
+  await Promise.all([obrero(), obrero()]); MUNDO.listo = true;
+}
+function listo() { if (--pend) return; arrancado = true; $("pct").textContent = "100 %"; $("barra").firstElementChild.style.width = "100%"; $("carga").classList.add("lista"); }   // el juego queda visible debajo y la pantalla blanca se desvanece (fade) encima
 loader.loadAsync("../modelo/aquiles.glb", (e) => preAv("conductor", e.total ? e.loaded / e.total * 0.97 : 0.5)).then((g) => {
   const m = g.scene; m.rotation.y = -Math.PI / 2; m.scale.setScalar(AQ.esc); pj.add(m);   // el modelo mira a +X: se gira para que mire a +Z como el resto del juego
   m.traverse((o) => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; o.frustumCulled = false; if (o.morphTargetInfluences?.length) AQ.cuerpo = o; } });   // sin culling: la pose sentada queda lejos de la esfera del reposo
@@ -2336,6 +2439,7 @@ function dejaArena() {   // copia estática (sin interior) del Arena original en
   v = { id: "arena-spawn", modelo: "vehiculo-arena-pro", x: SPAWN.x, z: SPAWN.z, hd: SPAWN.hd, color: undefined, grupos: [g], cajas, tomado: false, pseudo: true }; VEHICULOS.push(v); return v;
 }
 async function abordar(v) {
+  saltaCine();   // si la toma inicial sigue en curso, termina (JUEGO.abordar desde las pruebas)
   const prev = CARRO.v ?? dejaArena(); if (prev !== v) devuelve(prev); CARRO.v = v;
   v.tomado = true; for (const b of v.cajas) quitaObst(b); v.grupos?.forEach((g) => { g.visible = false; });
   const tipo = v.modelo === "vehiculo-elite" ? "elite" : v.modelo === "vehiculo-refine" ? "refine" : v.modelo === "vehiculo-aventura" ? "aventura" : "arena", elite = tipo !== "arena"; if (tipo === "elite") await cargaElite(); else if (tipo === "refine") await cargaRefine(); else if (tipo === "aventura") await cargaAventura();
@@ -2462,10 +2566,13 @@ function locoIK(dt) {   // tras el mixer: pies bloqueados en el apoyo, adaptados
     const sh = LOCO.sombras[i], alto = Math.max(0, _ld.y - (g + P.y + FOOT_Y)); sh.visible = true; sh.position.set(_ld.x, g + P.y + FOOT_Y + 0.015, _ld.z); sh.rotation.y = P.hd; sh.material.opacity = 0.9 * clamp(1 - (alto - 0.05) / 0.3, 0, 1);
   }
 }
+const ayudaEl = document.getElementById("ayuda"); if (touch) ayudaEl.innerHTML = "<span>Toca la pantalla para moverte</span>";   // en táctil, las zonas de la pantalla hacen de WASD (mapT)
+function quitaAyuda() { if (!ayudaEl || ayudaEl.classList.contains("fuera")) return; ayudaEl.classList.add("fuera"); setTimeout(() => ayudaEl.remove(), 700); }   // al primer movimiento (o al subir a un vehículo)
 function caminar(dt) {                          // WASD / flechas relativos a la cámara
   const az = P.cy - orb.yaw, sa = Math.sin(az), ca = Math.cos(az);
   const av = (k("KeyW", "ArrowUp") ? 1 : 0) - (k("KeyS", "ArrowDown") ? 1 : 0), lr = (k("KeyD", "ArrowRight") ? 1 : 0) - (k("KeyA", "ArrowLeft") ? 1 : 0);
   const mx = sa * av - ca * lr, mz = ca * av + sa * lr, ml = Math.hypot(mx, mz);
+  if (ml > 0.01) quitaAyuda();
   const corre = true;   // Aquiles siempre corre (nunca camina); Shift ya no cambia nada
   let alin = 1, giraSitio = false;
   if (ml > 0.01) {   // el cuerpo gira con velocidad angular limitada (más lenta al correr) y avanza en la dirección en que mira; con un giro grande primero se frena y gira (pivota)
@@ -2484,6 +2591,7 @@ function caminar(dt) {                          // WASD / flechas relativos a la
 }
 function personaje(dt) {
   if (!mixer) return;
+  if (modo !== "pie") quitaAyuda();
   if (modo === "pie") caminar(dt);
   else if (modo === "entrando" && !ent.fase) {  // alineación al inicio de Entrar, caminando, sin saltos
     ent.t += dt; const u = Math.min(1, ent.t / ent.dur);
@@ -2555,11 +2663,11 @@ function audioInit() {
 }
 // ── muestras reales (sonidos/*.mp3, Freesound CC0; créditos en sonidos/CREDITOS.md). Se decodifican tras el primer gesto del usuario; mientras no estén, sigue sonando la síntesis. ──
 let mezcla; const SND = {}, PASOS = { caminar: [], correr: [] }, LAZO = {};
-const SND_ARCH = ["paso_caminar", "paso_correr", "enc_arena", "arr_arena", "enc_elite", "arr_elite", "enc_refine", "arr_refine", "ralenti_a", "ralenti_b", "cinturon_aviso", "cinturon_click", "claxon"];
+const SND_ARCH = ["paso_caminar", "paso_correr", "enc_arena", "arr_arena", "enc_elite", "arr_elite", "enc_refine", "arr_refine", "ralenti_a", "ralenti_b", "cinturon_aviso", "cinturon_click", "claxon", "rev_arena", "rev_elite", "rev_refine"];
 // por modelo: enc = encendido (llave/contacto/motor de arranque), arr = arranque del motor, ral = tramo estable de ralentí para el lazo, tono = tono base del lazo. [archivo, inicio s, duración s]
-const VEH_SND = { arena: { enc: ["enc_arena", 0.3, 0.95], arr: ["arr_arena", 0.9, 2.8], ral: ["ralenti_a", 3.5, 7.5], tono: 1.0 }, elite: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 3.6], ral: ["ralenti_b", 2.5, 7.5], tono: 0.9 }, refine: { enc: ["enc_refine", 0, 2.2], arr: ["arr_refine", 0.5, 3.6], ral: ["ralenti_a", 3.5, 7.5], tono: 0.78 }, aventura: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 5.2], ral: ["ralenti_b", 2.5, 7.5], tono: 0.82 } };   // la Aventura usa los sonidos del Elite, más grave
+const VEH_SND = { arena: { enc: ["enc_arena", 0.3, 0.95], arr: ["arr_arena", 0.9, 2.8], ral: ["ralenti_a", 3.5, 7.5], rev: ["rev_arena", 2.0, 2.4], tono: 1.0 }, elite: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 3.6], ral: ["ralenti_b", 2.5, 7.5], rev: ["rev_elite", 0.6, 2.2], tono: 0.9 }, refine: { enc: ["enc_refine", 0, 2.2], arr: ["arr_refine", 0.5, 3.6], ral: ["ralenti_a", 3.5, 7.5], rev: ["rev_refine", 10, 5.5], tono: 0.78 }, aventura: { enc: ["enc_elite", 0.4, 2.0], arr: ["arr_elite", 0, 5.2], ral: ["ralenti_b", 2.5, 7.5], rev: ["rev_elite", 0.6, 2.2], tono: 0.82 } };   // la Aventura usa los sonidos del Elite, más grave
 async function cargaSonidos() {
-  await Promise.all(SND_ARCH.map(async (n) => { try { SND[n] = await AC.decodeAudioData(await (await fetch("./sonidos/" + n + ".mp3")).arrayBuffer()); } catch (e) { console.warn("sonido no cargó", n, e); } }));
+  await Promise.all(SND_ARCH.map(async (n) => { try { SND[n] = await AC.decodeAudioData(await (await fetch("./sonidos/" + n + ".mp3?v=3")).arrayBuffer()); } catch (e) { console.warn("sonido no cargó", n, e); } }));
   if (SND.paso_caminar) PASOS.caminar = cortaPasos(SND.paso_caminar, 0.3);
   if (SND.paso_correr) PASOS.correr = cortaPasos(SND.paso_correr, 0.24);
 }
@@ -2594,21 +2702,27 @@ const corta = (nom, ini, dur, cuando, vol, tasa = 1) => {
   g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.setValueAtTime(vol, t + Math.max(0.02, d - 0.05)); g.gain.linearRampToValueAtTime(0, t + d);
   s.connect(g).connect(mezcla); s.start(t, ini, Math.min(dur, b.duration - ini)); return { s, g, fin: t + d };
 };
-let ralSrc = null, ralG = null, ralListo = 0, ralTipo = "arena", arranqueHasta = 0;
-function lazoRalenti(tipo) {   // tramo estable del ralentí con fundido cruzado entre el final y el principio: lazo sin chasquido
-  const V = VEH_SND[tipo], clave = V.ral[0] + V.ral[1]; if (LAZO[clave]) return LAZO[clave]; const b = SND[V.ral[0]]; if (!b) return null;
-  const sr = b.sampleRate, ini = Math.round(V.ral[1] * sr), n = Math.min(Math.round(V.ral[2] * sr), b.length - ini), xf = Math.round(0.6 * sr), d = b.getChannelData(0), out = AC.createBuffer(1, n - xf, sr), o = out.getChannelData(0);
+let ralSrc = null, ralG = null, ralSrc2 = null, ralG2 = null, ralListo = 0, ralTipo = "arena", arranqueHasta = 0, marchaPrev = 0, cortaT = 0;
+const curvaDist = (k) => { const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); } return c; };   // saturación suave: da rugido y armónicos al motor
+function lazoRalenti(tipo, cual = "ral") {   // tramo estable (ralentí o revoluciones altas) con fundido cruzado entre el final y el principio: lazo sin chasquido
+  const V = VEH_SND[tipo], seg = V[cual], clave = seg[0] + seg[1]; if (LAZO[clave]) return LAZO[clave]; const b = SND[seg[0]]; if (!b) return null;
+  const sr = b.sampleRate, ini = Math.round(seg[1] * sr), n = Math.min(Math.round(seg[2] * sr), b.length - ini), xf = Math.round(Math.min(0.6, seg[2] * 0.25) * sr), d = b.getChannelData(0), out = AC.createBuffer(1, n - xf, sr), o = out.getChannelData(0);
   for (let i = 0; i < n - xf; i++) { let v = d[ini + i]; if (i < xf) { const f = i / xf; v = v * f + d[ini + n - xf + i] * (1 - f); } o[i] = v; }
   return (LAZO[clave] = out);
 }
 function secuenciaArranque(tipo) {   // al ponerse al volante: aviso del cinturón -> broche -> encendido (propio de cada modelo) -> arranque (propio) -> ralentí
   if (!AC) return; const V = VEH_SND[tipo] ?? VEH_SND.arena, t = AC.currentTime + 0.15;
-  if (ralSrc) { try { ralSrc.stop(); } catch (e) {} ralSrc = null; }
+  if (ralSrc) { try { ralSrc.stop(); } catch (e) {} ralSrc = null; } if (ralSrc2) { try { ralSrc2.stop(); } catch (e) {} ralSrc2 = null; }
   const av = corta("cinturon_aviso", 0, 1.3, t, 0.5); corta("cinturon_click", 0.3, 0.9, t + 1.35, 0.85);
   const tEnc = t + 1.9; corta(V.enc[0], V.enc[1], V.enc[2], tEnc, 0.8); const tArr = tEnc + V.enc[2] + 0.03; corta(V.arr[0], V.arr[1], V.arr[2], tArr, 0.9);
   ralTipo = tipo; ralListo = tArr + 1.2; const lz = lazoRalenti(tipo);
   arranqueHasta = SND[V.enc[0]] && SND[V.arr[0]] ? performance.now() + (tArr + V.arr[2] - AC.currentTime) * 1000 : 0; if (arranqueHasta) aviso("Encendiendo el motor…");   // sin audio no hay espera
-  if (lz) { ralSrc = AC.createBufferSource(); ralSrc.buffer = lz; ralSrc.loop = true; ralG = AC.createGain(); ralG.gain.value = 0; ralSrc.connect(ralG).connect(mezcla); ralSrc.start(ralListo - 0.2); }
+  if (lz) {   // motor deportivo: capa grave saturada (rugido) + capa aguda que sube con las revoluciones y el acelerador (grito del motor)
+    ralSrc = AC.createBufferSource(); ralSrc.buffer = lz; ralSrc.loop = true; ralG = AC.createGain(); ralG.gain.value = 0;
+    const sat = AC.createWaveShaper(); sat.curve = curvaDist(3.2); sat.oversample = "2x"; const lp = AC.createBiquadFilter(); lp.type = "lowshelf"; lp.frequency.value = 160; lp.gain.value = 9;
+    ralSrc.connect(sat); sat.connect(lp); lp.connect(ralG).connect(mezcla); ralSrc.start(ralListo - 0.2);
+    const lr = lazoRalenti(tipo, "rev") ?? lz; ralSrc2 = AC.createBufferSource(); ralSrc2.buffer = lr; ralSrc2.loop = true; ralG2 = AC.createGain(); ralG2.gain.value = 0; const hp = AC.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 160; ralSrc2.connect(hp).connect(ralG2).connect(mezcla); ralSrc2.start(ralListo - 0.2);
+  }
 }
 let claxSrc = null, claxG = null;
 function claxonSuena(on) {
@@ -2618,9 +2732,9 @@ function claxonSuena(on) {
 }
 let marchaAct = 0, rpmN = 0;
 function sonido(dt, thr) {
-  const v = Math.abs(S.vf), g = Math.min(Math.floor(v / 11), 4);
+  const v = Math.abs(S.vf), g = Math.min(Math.floor(v / 9), 5);
   marchaAct = S.vf < -0.5 ? -1 : v < 0.3 && !thr ? 0 : g + 1;
-  const base = Math.max(0, (v - g * 11) / 11);
+  const base = Math.max(0, (v - g * 9) / 9);
   const objetivo = clamp(0.2 + (S.vf < 0 ? v / 14 * 0.7 : base * 0.75 + (thr ? 0.05 : 0)), 0.18, 1);
   rpmN = lerp(rpmN, thr && v < 1 ? 0.5 : objetivo, Math.min(1, 7 * dt));
   if (!AC) return;
@@ -2628,7 +2742,13 @@ function sonido(dt, thr) {
   motor.frequency.setTargetAtTime(38 + rpmN * 120, t, 0.05);
   filtro.frequency.setTargetAtTime(260 + rpmN * 700 + (thr ? 250 : 0), t, 0.08);
   motorG.gain.setTargetAtTime(!ralSrc && arrancado && modo === "manejo" ? 0.07 + (thr ? 0.05 : 0) : 0, t, 0.1);   // la síntesis solo suena si aún no hay muestras
-  if (ralSrc) { const V = VEH_SND[ralTipo]; ralSrc.playbackRate.setTargetAtTime(V.tono * (0.72 + rpmN * 1.5), t, 0.08); ralG.gain.setTargetAtTime(modo === "manejo" && t > ralListo - 0.3 ? 0.3 + (thr ? 0.14 : 0) + rpmN * 0.2 : 0, t, 0.18); }
+  if (ralSrc) {   // sonido deportivo: más agudo y con más rango, corte de combustible en cada cambio, ráfaga al pisar el acelerador y capa aguda con la carga
+    const V = VEH_SND[ralTipo], conduce = modo === "manejo" && t > ralListo - 0.3; if (marchaAct !== marchaPrev) { if (marchaAct > marchaPrev && marchaPrev > 0) cortaT = t + 0.1; marchaPrev = marchaAct; }
+    const corte = t < cortaT ? 0.3 : 1, sm = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); }, carga = thr ? 1 : 0.35;
+    const baja = V.tono * (0.55 + rpmN * 1.25 + (thr && Math.abs(S.vf) < 3 ? 0.2 : 0)), alta = V.tono * (0.8 + rpmN * 0.9 + (thr && Math.abs(S.vf) < 3 ? 0.15 : 0));   // capa grave: muy profunda en ralentí; capa aguda: motor a altas revoluciones
+    ralSrc.playbackRate.setTargetAtTime(baja, t, 0.05); ralG.gain.setTargetAtTime(conduce ? (0.5 + (thr ? 0.25 : 0)) * (1 - 0.55 * sm(0.3, 0.85, rpmN)) * corte : 0, t, corte < 1 ? 0.01 : 0.1);
+    ralSrc2.playbackRate.setTargetAtTime(alta, t, 0.05); ralG2.gain.setTargetAtTime(conduce ? (0.12 + 0.7 * sm(0.2, 0.8, rpmN)) * carga * corte : 0, t, corte < 1 ? 0.01 : 0.09);
+  }
   claxonSuena(!!claxon && modo === "manejo"); pasos(dt);
   const chirrido = clamp((Math.abs(S.vl) - 3) / 8, 0, 1) + (k("Space") && v > 6 ? 0.6 : 0);
   ruidoG.gain.setTargetAtTime(Math.min(chirrido, 1) * 0.12, t, 0.05);
@@ -2742,18 +2862,25 @@ $("horaS").addEventListener("input", (e) => { REL.hora = +e.target.value; $("hor
 for (const b of document.querySelectorAll("#menuO [data-v]")) b.addEventListener("click", () => { REL.vel = +b.dataset.v; try { localStorage.setItem("jacTiempoVel", String(REL.vel)); } catch (e) {} menuVista(); });
 $("dist").addEventListener("input", (e) => aplicaDist(+e.target.value / DIST_BASE));
 for (const b of document.querySelectorAll("#menuO [data-c]")) b.addEventListener("click", () => { aplicaCalidad(b.dataset.c); menuVista(); });
-addEventListener("keydown", (e) => { if (e.code !== "Escape") return; if (pausa) { e.preventDefault(); if (menuOpc) { menuOpc = false; menuVista(); } else cierraMenu(); } else if (arrancado && !bloqueado()) abreMenu(); });   // Esc abre el menú (si el ratón estaba capturado, el propio Esc lo suelta y lo abre pointerlockchange); con el menú abierto, Esc vuelve / continúa
+addEventListener("keydown", (e) => { if (e.code !== "Escape" || e.cineSalto) return; if (pausa) { e.preventDefault(); if (menuOpc) { menuOpc = false; menuVista(); } else cierraMenu(); } else if (arrancado && !bloqueado()) abreMenu(); });   // Esc abre el menú (si el ratón estaba capturado, el propio Esc lo suelta y lo abre pointerlockchange); con el menú abierto, Esc vuelve / continúa
 document.addEventListener("pointerlockchange", () => { if (!bloqueado() && arrancado && !touch && !pausa && document.visibilityState === "visible") setTimeout(() => { if (!bloqueado()) abreMenu(); }, 60); });   // Esc suelta el ratón -> menú de pausa
 function frame(now) {
   requestAnimationFrame(frame);
   renderer.info.reset();                         // las estadísticas (JUEGO.stats) cubren el cuadro completo, no solo el último pase
   const dt = Math.min(0.05, (now - t0) / 1000); t0 = now; const c0 = performance.now();
   if (!arrancado) {                              // pantalla de carga: se leen los modelos, se suben a la GPU y se compilan los shaders; el juego se muestra al terminar todo
-    car.position.set(S.x, 0, S.z); car.rotation.y = S.hd; camera.position.set(S.x - Math.sin(S.hd) * 9, 3.5, S.z - Math.cos(S.hd) * 9); camera.lookAt(S.x, 1.2, S.z);   // el cuadro de la carga ya mira al punto de salida (no al origen, bajo el carro)
-    LODM.update(S.x, S.z, now, 0); LODM.subir(14); LODM.preProgreso(); preActualiza();
+    car.position.set(S.x, 0, S.z); car.rotation.y = S.hd; camera.position.set(S.x - Math.sin(S.hd) * 9, 3.5, S.z - Math.cos(S.hd) * 9); camera.lookAt(S.x, 1.2, S.z);
+    if (PRE.mundo) {   // giro de 360 grados alrededor del personaje (14 s por vuelta, medido en tiempo real) a 60 m y 12 m de altura
+      const rt = Math.min(0.3, (now - (MUNDO.ult || now)) / 1000); MUNDO.ult = now; MUNDO.ang += rt * 2 * Math.PI / 14; const a = S.hd + Math.PI + MUNDO.ang, fx = P.x, fz = P.z;
+      camera.position.set(fx + Math.sin(a) * 60, S.y + 12, fz + Math.cos(a) * 60); camera.lookAt(fx, S.y + 1.3, fz);
+      preAv("mundo", 0.2 * MUNDO.v / MUNDO.vT + 0.4 * (MUNDO.pT ? MUNDO.p / MUNDO.pT : MUNDO.listo ? 1 : 0) + 0.4 * Math.min(1, MUNDO.ang / (2 * Math.PI)));
+    }   // el cuadro de la carga ya mira al punto de salida (no al origen, bajo el carro)
+    LODM.update(PRE.mundo ? camera.position.x : S.x, PRE.mundo ? camera.position.z : S.z, now, 0, cineFoco()); LODM.subir(14); LODM.preProgreso(); preActualiza(); tipsCarga(now);
     if (!PRE.edifOk && LODM.listo() && (PRE.col ?? 0) <= 0) { PRE.edifOk = true; preAv("edificios", 1); }
-    const todo = PRE.edifOk && !mgrTex.isLoading && PRE.t.entorno.av >= 1 && PRE.t.texturas.av >= 0.98 && PRE.t.carro.av >= 1 && PRE.t.conductor.av >= 1;
-    if (todo) PRE.cuadros++; if (!PRE.fin && ((todo && PRE.cuadros > 12) || performance.now() - PRE.ini > 180000)) { PRE.fin = true; if (!todo) console.warn("Precarga incompleta tras 180 s; se inicia igualmente", PRE.t); preAv("texturas", 1); listo(); }   // unos cuadros más con todo cargado para asentar la GPU
+    const todo = PRE.edifOk && !mgrTex.isLoading && PRE.t.entorno.av >= 1 && PRE.t.texturas.av >= 0.98 && PRE.t.carro.av >= 1 && PRE.t.conductor.av >= 1 && cineLista();
+    if (todo) PRE.cuadros++; if (todo && PRE.cuadros > 12 && !PRE.mundo) { PRE.mundo = true; iniciaMundo(); }   // primero lo esencial; luego el mundo (todo dentro del mismo 100 %)
+    const mundoOk = PRE.mundo && MUNDO.listo && MUNDO.ang >= 2 * Math.PI;
+    if (!PRE.fin && (mundoOk || performance.now() - PRE.ini > 180000)) { PRE.fin = true; if (!todo) console.warn("Precarga incompleta tras 180 s; se inicia igualmente", PRE.t); preAv("mundo", 1); preAv("texturas", 1); listo(); }
     if (!SINRENDER) composer.render(); return;
   }
   if (pausa) { composer.render(); return; }
@@ -2768,13 +2895,14 @@ function frame(now) {
   personaje(dt);
   if (modo !== modoUI) ui();
   fo = modo === "pie" || modo === "bajando" ? P : S;     // a quién siguen la sombra, el minimapa y el nombre de la calle
+  if (CINE.activa) { CINE.fo.x = ultTgt.x; CINE.fo.z = ultTgt.z; CINE.fo.hd = S.hd; fo = CINE.fo; }   // en la toma, la sombra sigue a lo que mira la cámara
   dejarMarcas();
   const thr = maneja && performance.now() >= arranqueHasta && k("KeyW", "ArrowUp"), brk = maneja && k("KeyS", "ArrowDown"), mano = maneja && k("Space");
   sonido(dt, thr);
 
   // día / noche
   if (PRE.warm === undefined) { PRE.warm = 5; PRE.sv = [REL.hora, noche, luces]; } if (PRE.warm > 0) REL.hora = 22.5;   // pantalla de carga: unos cuadros de NOCHE ocultos compilan los shaders nocturnos (bloom, luces, ventanas) para que no haya tirones al anochecer
-  REL.hora = (REL.hora + dt * VEL_TIEMPO[REL.vel] / 50) % 24; const rc = relojCalc(); nocheObj = rc.noche;   // el reloj avanza y fija la noche objetivo
+  REL.hora = (REL.hora + (PRE.click ? dt * VEL_TIEMPO[REL.vel] / 50 : 0)) % 24; const rc = relojCalc(); nocheObj = rc.noche;   // el reloj avanza y fija la noche objetivo
   if (nocheObj > 0.7 && lucesAutoPrev <= 0.7) luces = true; else if (nocheObj < 0.3 && lucesAutoPrev >= 0.3) luces = false; lucesAutoPrev = nocheObj;   // luces del coche: se encienden al anochecer y se apagan al amanecer
   noche += clamp(nocheObj - noche, -0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1), 0.6 * Math.max(dt, 0.02) * (REL.vel >= 2 ? 3 : 1)); if (PRE.warm > 0) noche = 1;
   if (now - horaHudT > 500) { horaHudT = now; el.hora.textContent = horaTxt() + (REL.vel === 0 ? " · pausa" : ""); }
@@ -2876,9 +3004,11 @@ function frame(now) {
     camManeja = !pie; bPos.copy(ultPos); bTgt.copy(ultTgt); camMezcla = 1;
   }
   if (camMezcla > 0) { camMezcla = Math.max(0, camMezcla - dt / 0.9); const e = 1 - camMezcla; cPos.lerpVectors(bPos, cPos, e * e * (3 - 2 * e)); cTgt.lerpVectors(bTgt, cTgt, e * e * (3 - 2 * e)); }
+  if (CINE.activa) cineCamara(cPos, cTgt);       // toma inicial: sustituye la cámara normal hasta enlazar con ella
   if (!interior && !window.DBGCAM) {            // la cámara no atraviesa terrenos altos: se acerca al objetivo hasta quedar sobre el suelo y nunca baja de él
     const f = cPos.clone().sub(cTgt); for (let i = 1; i <= 12; i++) { const t = i / 12, qx = cTgt.x + f.x * t, qz = cTgt.z + f.z * t; if (cTgt.y + f.y * t < suelo(qx, qz) + 0.3) { cPos.copy(cTgt).addScaledVector(f, Math.max(0.12, (i - 1) / 12)); break; } }
     cPos.y = Math.max(cPos.y, suelo(cPos.x, cPos.z) + 0.4);
+    camFueraDeVehiculos(cPos, cTgt);               // la cámara nunca atraviesa la carrocería de un vehículo (ni se ven las ruedas desde dentro)
   }
   if (window.DBGCAM) { cPos.fromArray(DBGCAM.p); cTgt.fromArray(DBGCAM.t); }   // depuración: cámara fija desde la consola
   camera.position.copy(cPos); camera.lookAt(cTgt); ultPos.copy(cPos); ultTgt.copy(cTgt);
@@ -2909,12 +3039,13 @@ function frame(now) {
   minimapa();
   if (!SINRENDER) composer.render();
   perfCuadro(now, performance.now() - c0); perfPanel(now);
+  if (!PRE.click) tipsCarga(now);   // los consejos siguen rotando mientras se espera el click
   if (PRE.warm > 0 && --PRE.warm === 0) { REL.hora = PRE.sv[0]; noche = PRE.sv[1]; luces = PRE.sv[2]; lucesAutoPrev = nocheObj = 0; }   // fin del calentamiento: vuelve a la hora y estado reales
-  if (!PRE.mostrado && PRE.warm === 0) { PRE.mostrado = true; requestAnimationFrame(() => { document.body.classList.remove("cargando"); $("carga").classList.add("fuera"); }); }   // la pantalla blanca solo se desvanece cuando YA se dibujó un cuadro real del juego (cámara y carro en su sitio); antes el canvas conservaba el último cuadro de la carga, con el carro y la cámara en el origen
+  if (!PRE.mostrado && PRE.warm === 0 && PRE.click) { PRE.mostrado = true; requestAnimationFrame(() => { document.body.classList.remove("cargando"); $("carga").classList.add("fuera"); CINE.t0 = performance.now(); }); }   // CINE.t0: la toma empieza a contar al desvanecerse la pantalla blanca   // la pantalla blanca solo se desvanece cuando YA se dibujó un cuadro real del juego (cámara y carro en su sitio); antes el canvas conservaba el último cuadro de la carga, con el carro y la cámara en el origen
 }
 // vista cenital para el editor de mapas: ?cenital=ALTO&cx=X&cz=Z -> cámara fija mirando hacia abajo (norte arriba), sin HUD
 { const q = new URLSearchParams(location.search), h = parseFloat(q.get("cenital")); if (h > 0) { const cx = parseFloat(q.get("cx")) || 0, cz = parseFloat(q.get("cz")) || 0; const tx = q.has("tx") ? parseFloat(q.get("tx")) : cx, ty = parseFloat(q.get("ty")) || 0, tz = q.has("tz") ? parseFloat(q.get("tz")) : cz; window.DBGCAM = { p: [cx, h, cz + (q.has("tx") ? 0 : 1)], t: [tx, ty, tz] }; document.querySelectorAll(".hud").forEach((e) => (e.style.display = "none")); } }
-window.JUEGO = { espera: () => Math.round(arranqueHasta - performance.now()), ANUN_IMG, camera, sim: (dt) => personaje(dt), setPausa: (v) => { pausa = v; }, LOCO, audio: () => ({ snd: Object.keys(SND), caminar: PASOS.caminar.length, correr: PASOS.correr.length, estado: AC && AC.state, lazos: Object.keys(LAZO), ralSrc: !!ralSrc }), secuencia: secuenciaArranque, paso: pasoSuena, tirones: () => PERF.tirones, scene, renderer, CARRO, VEHICULOS, abordar, REL, relojCalc, dirSun, dirMoon, horaTxt, perf: perfResumen, perfTex, LODM, LED, aplicaCalidad, CAL, CALLES, RELIEVE, alturaTerreno, suelo, spL, spP, spA, spS, spray, W, setClima, pozos, BACHES, huellas, arbolesPos, XR, ZR, S, P, pj, ent, acts, get camModo() { return camModo; }, set camModo(v) { camModo = v; }, OJOS, volante, ELITE, REFINE, AVENTURA, get modo() { return modo; }, get mixer() { return mixer; }, get puerta() { return puerta; }, get cabeza() { return cabeza; }, accion, ruedas, camera, car, THREE, orb, composer, bloom, scene, renderer, tilt, teselas, gtao, setNoche: (v) => { noche = nocheObj = v; luces = true; },   // para depurar desde la consola
+window.JUEGO = { cine: CINE, saltaCine, espera: () => Math.round(arranqueHasta - performance.now()), ANUN_IMG, camera, sim: (dt) => personaje(dt), setPausa: (v) => { pausa = v; }, LOCO, audio: () => ({ snd: Object.keys(SND), caminar: PASOS.caminar.length, correr: PASOS.correr.length, estado: AC && AC.state, lazos: Object.keys(LAZO), ralSrc: !!ralSrc }), secuencia: secuenciaArranque, paso: pasoSuena, tirones: () => PERF.tirones, scene, renderer, CARRO, VEHICULOS, abordar, REL, relojCalc, dirSun, dirMoon, horaTxt, perf: perfResumen, perfTex, LODM, LED, aplicaCalidad, CAL, CALLES, RELIEVE, alturaTerreno, suelo, spL, spP, spA, spS, spray, W, setClima, pozos, BACHES, huellas, arbolesPos, XR, ZR, S, P, pj, ent, acts, get camModo() { return camModo; }, set camModo(v) { camModo = v; }, OJOS, volante, ELITE, REFINE, AVENTURA, get modo() { return modo; }, get mixer() { return mixer; }, get puerta() { return puerta; }, get cabeza() { return cabeza; }, accion, ruedas, camera, car, THREE, orb, composer, bloom, scene, renderer, tilt, teselas, gtao, setNoche: (v) => { noche = nocheObj = v; luces = true; },   // para depurar desde la consola
   stats: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, programs: renderer.info.programs.length }) };
 requestAnimationFrame(frame);
 </script>

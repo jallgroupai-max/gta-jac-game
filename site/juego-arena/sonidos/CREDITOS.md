@@ -15,3 +15,7 @@ Descargados de https://freesound.org (vista previa HQ). Se usan tal cual, recort
 | cinturon_aviso.mp3 | aviso del cinturón | Seatbelt Car Chimes (702199) | melokacool |
 | cinturon_click.mp3 | broche del cinturón | Plug seatbelt in (629302) | greatsoundstube |
 | claxon.mp3 | claxon | Car Horn (517673) | danlucaz |
+
+| rev_arena.mp3 | Arena Pro: capa de motor a altas revoluciones | Car Engine Revving (558844) | DigPro120 |
+| rev_elite.mp3 | Elite: capa a altas revoluciones | S63 AMG V8 Engine Revs (505321) | marcelweiss |
+| rev_refine.mp3 | Refine: capa a altas revoluciones | Import car revs on Chassis Dyno with Turbo (496171) | editboy23 |

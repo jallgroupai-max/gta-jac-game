@@ -936,6 +936,52 @@
       }
     },
     {
+      "id": "vehiculo-aventura",
+      "nombre": "Aventura",
+      "categoria": "vehiculos",
+      "archivo": "vehiculo_aventura_lod0.glb",
+      "lods": [
+        {
+          "archivo": "vehiculo_aventura_lod0.glb",
+          "desde": 0
+        },
+        {
+          "archivo": "vehiculo_aventura_lod1.glb",
+          "desde": 35
+        },
+        {
+          "archivo": "vehiculo_aventura_lod2.glb",
+          "desde": 90
+        }
+      ],
+      "colision": "vehiculo_aventura_collision.glb",
+      "miniatura": "vehiculo_aventura_top.png",
+      "huella": {
+        "ancho": 2.08,
+        "fondo": 5.33,
+        "cx": 0,
+        "cz": 0
+      },
+      "alto": 1.99,
+      "frente": "+z",
+      "fijo": true,
+      "puedeRebasar": true,
+      "colorable": {
+        "materiales": [
+          "Aventura_Pintura"
+        ],
+        "defecto": "#414141",
+        "colores": [
+          "#414141",
+          "#ffffff",
+          "#c1272d",
+          "#f2b705",
+          "#a3a6aa",
+          "#5f6368"
+        ]
+      }
+    },
+    {
       "id": "muro-piedra-tramo",
       "nombre": "Muro de piedra tipo hormigón (tramo de 4 m)",
       "categoria": "complementos",
